@@ -75,6 +75,9 @@ export async function bookFlight(formData: FormData) {
     return result;
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Booking failed.";
+    if (message.includes("FOREIGN KEY")) {
+      return { success: false, error: "Your session is invalid. Please sign out and sign back in." };
+    }
     return { success: false, error: message };
   }
 }
