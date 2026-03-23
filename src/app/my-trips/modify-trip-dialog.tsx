@@ -29,15 +29,17 @@ interface FlightInfo {
 interface HotelInfo {
   bookingId: string;
   hotelName: string;
+  hotelCity: string;
   roomTypeName: string;
   checkIn: string;
   checkOut: string;
   pricePerNight: number;
   rooms: number;
+  guests: number;
   totalPrice: number;
 }
 
-interface SearchResult {
+interface SearchFlight {
   id: string;
   flightNumber: string;
   airlineName: string;
@@ -50,201 +52,209 @@ interface SearchResult {
   availableSeats: number;
 }
 
-export function ModifyTripDialog({
-  flight,
-  hotel,
-}: {
-  flight: FlightInfo;
-  hotel: HotelInfo;
-}) {
+interface SearchHotel {
+  id: string;
+  name: string;
+  city: string;
+  starRating: number;
+  reviewScore: number;
+  roomTypes: { id: string; name: string; pricePerNight: number; capacity: number; availableCount: number }[];
+}
+
+export function ModifyTripDialog({ flight, hotel }: { flight: FlightInfo; hotel: HotelInfo }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(1);
-  const [newDate, setNewDate] = useState("");
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  const [selectedFlight, setSelectedFlight] = useState<SearchResult | null>(null);
-  const [newCheckIn, setNewCheckIn] = useState("");
-  const [newCheckOut, setNewCheckOut] = useState("");
+
+  // Step 1: dates
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+
+  // Step 2: flights
+  const [flightResults, setFlightResults] = useState<SearchFlight[]>([]);
+  const [selectedFlight, setSelectedFlight] = useState<SearchFlight | null>(null);
+
+  // Step 3: hotels
+  const [hotelResults, setHotelResults] = useState<SearchHotel[]>([]);
+  const [selectedHotel, setSelectedHotel] = useState<SearchHotel | null>(null);
+  const [selectedRoom, setSelectedRoom] = useState<{ id: string; name: string; pricePerNight: number } | null>(null);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const originalNights = Math.ceil(
-    (new Date(hotel.checkOut).getTime() - new Date(hotel.checkIn).getTime()) / (1000 * 60 * 60 * 24)
-  );
-
   function reset() {
-    setStep(1);
-    setNewDate("");
-    setSearchResults([]);
-    setSelectedFlight(null);
-    setNewCheckIn("");
-    setNewCheckOut("");
-    setLoading(false);
-    setError("");
+    setStep(1); setStartDate(""); setEndDate("");
+    setFlightResults([]); setSelectedFlight(null);
+    setHotelResults([]); setSelectedHotel(null); setSelectedRoom(null);
+    setLoading(false); setError("");
   }
 
+  // Step 1 → 2: search flights
   async function handleSearchFlights() {
-    if (!newDate) return;
-    setLoading(true);
-    setError("");
+    if (!startDate || !endDate) return;
+    setLoading(true); setError("");
     try {
       const res = await fetch(
-        `/api/flights/search?from=${flight.departureAirport}&to=${flight.arrivalAirport}&date=${newDate}&pax=${flight.pax}&class=${flight.seatClass}`
+        `/api/flights/search?from=${flight.departureAirport}&to=${flight.arrivalAirport}&date=${startDate}&pax=${flight.pax}&class=${flight.seatClass}`
       );
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
-        setSearchResults(data);
+        setFlightResults(data);
         setStep(2);
       } else {
         setError("No flights available on this date. Try another date.");
       }
-    } catch {
-      setError("Failed to search flights.");
-    } finally {
-      setLoading(false);
-    }
+    } catch { setError("Failed to search flights."); }
+    finally { setLoading(false); }
   }
 
-  function handleSelectFlight(f: SearchResult) {
+  // Step 2 → 3: select flight, search hotels
+  async function handleSelectFlight(f: SearchFlight) {
     setSelectedFlight(f);
-    // Auto-calculate hotel dates based on new flight arrival
-    const arrivalDate = f.arrivalTime.split("T")[0];
-    setNewCheckIn(arrivalDate);
-    // Preserve same number of nights
-    const checkOutDate = new Date(arrivalDate);
-    checkOutDate.setDate(checkOutDate.getDate() + originalNights);
-    setNewCheckOut(checkOutDate.toISOString().split("T")[0]);
-    setStep(3);
+    setLoading(true); setError("");
+    try {
+      const arrivalDate = f.arrivalTime.split("T")[0];
+      const res = await fetch(
+        `/api/hotels/search?city=${encodeURIComponent(hotel.hotelCity)}&checkIn=${arrivalDate}&checkOut=${endDate}&guests=${hotel.guests}`
+      );
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        setHotelResults(data);
+        setStep(3);
+      } else {
+        setError("No hotels available in " + hotel.hotelCity + " for these dates.");
+      }
+    } catch { setError("Failed to search hotels."); }
+    finally { setLoading(false); }
   }
 
-  const newNights = newCheckIn && newCheckOut
-    ? Math.ceil((new Date(newCheckOut).getTime() - new Date(newCheckIn).getTime()) / (1000 * 60 * 60 * 24))
-    : 0;
-  const newHotelPrice = hotel.pricePerNight * Math.max(newNights, 0) * hotel.rooms;
+  // Step 3 → 4: select hotel + room
+  function handleSelectRoom(h: SearchHotel, room: { id: string; name: string; pricePerNight: number }) {
+    setSelectedHotel(h);
+    setSelectedRoom(room);
+    setStep(4);
+  }
+
+  // Calculations
   const newFlightPrice = selectedFlight
     ? (flight.seatClass === "business" ? selectedFlight.businessPrice : selectedFlight.economyPrice) * flight.pax
     : 0;
+  const nights = startDate && endDate
+    ? Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24))
+    : 0;
+  const newHotelPrice = selectedRoom ? selectedRoom.pricePerNight * Math.max(nights, 0) * hotel.rooms : 0;
+  const oldTotal = flight.totalPrice + hotel.totalPrice;
+  const newTotal = newFlightPrice + newHotelPrice;
 
   async function handleConfirm() {
-    if (!selectedFlight || !newCheckIn || !newCheckOut) return;
-    setLoading(true);
-    setError("");
+    if (!selectedFlight || !selectedHotel || !selectedRoom) return;
+    setLoading(true); setError("");
+    const checkIn = selectedFlight.arrivalTime.split("T")[0];
     try {
       const result = await modifyTrip(
-        flight.bookingId,
-        selectedFlight.id,
-        hotel.bookingId,
-        newCheckIn,
-        newCheckOut
+        flight.bookingId, selectedFlight.id,
+        hotel.bookingId, selectedHotel.id, selectedRoom.id,
+        checkIn, endDate, hotel.guests, hotel.rooms
       );
       if (result.success) {
-        setStep(4);
-        setTimeout(() => {
-          setOpen(false);
-          reset();
-          router.refresh();
-        }, 2000);
+        setStep(5);
+        setTimeout(() => { setOpen(false); reset(); router.refresh(); }, 2000);
       } else {
         setError(result.error || "Failed to modify trip.");
       }
-    } catch {
-      setError("An unexpected error occurred.");
-    } finally {
-      setLoading(false);
-    }
+    } catch { setError("An unexpected error occurred."); }
+    finally { setLoading(false); }
   }
 
-  function formatTime(iso: string) {
+  function fmtTime(iso: string) {
     return new Date(iso).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
   }
-  function formatDate(iso: string) {
+  function fmtDate(iso: string) {
     return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   }
-  function formatDuration(min: number) {
-    return `${Math.floor(min / 60)}h ${min % 60}m`;
-  }
+  function fmtDur(min: number) { return `${Math.floor(min / 60)}h ${min % 60}m`; }
+
+  const stepTitles = ["", "Choose New Trip Dates", "Select a Flight", "Select a Hotel", "Review & Confirm", "Trip Updated!"];
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="inline-flex h-7 items-center gap-1.5 rounded-lg border border-blue-200 px-2.5 text-sm font-medium text-blue-600 hover:bg-blue-50 transition-colors"
-      >
-        <Pencil className="size-3.5" />
-        Modify Trip
+      <button type="button" onClick={() => setOpen(true)}
+        className="inline-flex h-7 items-center gap-1.5 rounded-lg border border-blue-200 px-2.5 text-sm font-medium text-blue-600 hover:bg-blue-50 transition-colors">
+        <Pencil className="size-3.5" /> Modify Trip
       </button>
       <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
-      <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            {step === 1 && "Choose New Travel Date"}
-            {step === 2 && "Select a New Flight"}
-            {step === 3 && "Review Changes"}
-            {step === 4 && "Trip Updated!"}
-          </DialogTitle>
+          <DialogTitle>{stepTitles[step]}</DialogTitle>
         </DialogHeader>
 
         {/* Step indicator */}
-        {step < 4 && (
-          <div className="flex items-center gap-2 mb-4">
-            {[1, 2, 3].map((s) => (
-              <div key={s} className="flex items-center gap-2">
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium ${
+        {step <= 4 && (
+          <div className="flex items-center gap-1.5 mb-3">
+            {[1, 2, 3, 4].map((s) => (
+              <div key={s} className="flex items-center gap-1.5">
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
                   s === step ? "bg-blue-600 text-white" : s < step ? "bg-green-500 text-white" : "bg-gray-200 text-gray-500"
                 }`}>
-                  {s < step ? <Check className="size-3.5" /> : s}
+                  {s < step ? <Check className="size-3" /> : s}
                 </div>
-                {s < 3 && <div className={`w-8 h-0.5 ${s < step ? "bg-green-500" : "bg-gray-200"}`} />}
+                {s < 4 && <div className={`w-6 h-0.5 ${s < step ? "bg-green-500" : "bg-gray-200"}`} />}
               </div>
             ))}
           </div>
         )}
 
-        {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
+        {error && <p className="text-sm text-red-600 mb-2">{error}</p>}
 
-        {/* Step 1: Pick new date */}
+        {/* STEP 1: Pick start + end dates */}
         {step === 1 && (
           <div className="space-y-4">
             <Card className="bg-muted/50">
-              <CardContent className="p-3">
-                <div className="flex items-center gap-2 text-sm">
+              <CardContent className="p-3 text-sm">
+                <div className="flex items-center gap-2">
                   <Plane className="size-4 text-blue-600" />
                   <span className="font-medium">{flight.departureAirport}</span>
                   <ArrowRight className="size-3" />
                   <span className="font-medium">{flight.arrivalAirport}</span>
-                  <span className="text-muted-foreground ml-auto">{formatDate(flight.departureTime)}</span>
+                </div>
+                <div className="flex items-center gap-2 mt-1">
+                  <Building className="size-4 text-blue-600" />
+                  <span>{hotel.hotelName}, {hotel.hotelCity}</span>
                 </div>
               </CardContent>
             </Card>
-            <div className="space-y-2">
-              <Label>New departure date</Label>
-              <Input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>New start date</Label>
+                <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>New end date</Label>
+                <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+              </div>
             </div>
-            <Button onClick={handleSearchFlights} disabled={!newDate || loading} className="w-full bg-blue-600 hover:bg-blue-700">
-              {loading ? "Searching..." : "Search Flights"}
+            <Button onClick={handleSearchFlights} disabled={!startDate || !endDate || loading}
+              className="w-full bg-blue-600 hover:bg-blue-700">
+              {loading ? "Searching..." : "Find Flights & Hotels"}
             </Button>
           </div>
         )}
 
-        {/* Step 2: Select flight */}
+        {/* STEP 2: Select flight */}
         {step === 2 && (
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">{searchResults.length} flights on {formatDate(newDate)}</p>
-            {searchResults.map((f) => {
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">{flightResults.length} flights on {fmtDate(startDate)}</p>
+            {flightResults.map((f) => {
               const price = flight.seatClass === "business" ? f.businessPrice : f.economyPrice;
               return (
-                <Card
-                  key={f.id}
-                  className="cursor-pointer hover:border-blue-300 transition-colors"
-                  onClick={() => handleSelectFlight(f)}
-                >
+                <Card key={f.id} className="cursor-pointer hover:border-blue-300 transition-colors"
+                  onClick={() => handleSelectFlight(f)}>
                   <CardContent className="p-3">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="font-medium text-sm">{f.airlineName} {f.flightNumber}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {formatTime(f.departureTime)} → {formatTime(f.arrivalTime)} · {formatDuration(f.durationMinutes)} · {f.stops === 0 ? "Nonstop" : `${f.stops} stop`}
+                        <p className="text-xs text-muted-foreground">
+                          {fmtTime(f.departureTime)} → {fmtTime(f.arrivalTime)} · {fmtDur(f.durationMinutes)} · {f.stops === 0 ? "Nonstop" : `${f.stops} stop`}
                         </p>
                       </div>
                       <div className="text-right">
@@ -256,79 +266,110 @@ export function ModifyTripDialog({
                 </Card>
               );
             })}
+            {loading && <p className="text-sm text-center text-muted-foreground">Loading hotels...</p>}
             <Button variant="outline" onClick={() => setStep(1)} className="w-full">Back</Button>
           </div>
         )}
 
-        {/* Step 3: Review changes (flight + hotel) */}
-        {step === 3 && selectedFlight && (
-          <div className="space-y-4">
-            {/* Flight change */}
+        {/* STEP 3: Select hotel + room */}
+        {step === 3 && (
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">
+              {hotelResults.length} hotels in {hotel.hotelCity} · {fmtDate(selectedFlight!.arrivalTime.split("T")[0])} – {fmtDate(endDate)}
+            </p>
+            {hotelResults.map((h) => (
+              <Card key={h.id}>
+                <CardContent className="p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-sm">{h.name}</p>
+                      <p className="text-xs text-muted-foreground">{"★".repeat(h.starRating)} · {h.reviewScore}/5</p>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    {h.roomTypes.map((room) => (
+                      <div key={room.id}
+                        className="flex items-center justify-between p-2 rounded border hover:border-blue-300 cursor-pointer transition-colors"
+                        onClick={() => handleSelectRoom(h, room)}>
+                        <div>
+                          <p className="text-sm font-medium">{room.name}</p>
+                          <p className="text-xs text-muted-foreground">{room.availableCount} left · up to {room.capacity} guests</p>
+                        </div>
+                        <p className="font-bold text-blue-600 text-sm">${room.pricePerNight}<span className="text-xs font-normal text-muted-foreground">/night</span></p>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+            <Button variant="outline" onClick={() => setStep(2)} className="w-full">Back to Flights</Button>
+          </div>
+        )}
+
+        {/* STEP 4: Review & Confirm */}
+        {step === 4 && selectedFlight && selectedHotel && selectedRoom && (
+          <div className="space-y-3">
             <Card>
-              <CardContent className="p-3 space-y-2">
-                <div className="flex items-center gap-2 text-sm font-medium">
-                  <Plane className="size-4 text-blue-600" />
-                  Flight Change
+              <CardContent className="p-3">
+                <div className="flex items-center gap-2 text-sm font-medium mb-2">
+                  <Plane className="size-4 text-blue-600" /> New Flight
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div className="text-muted-foreground">
                     <p className="line-through">{flight.flightNumber}</p>
-                    <p className="line-through">{formatDate(flight.departureTime)}</p>
+                    <p className="line-through">{fmtDate(flight.departureTime)}</p>
                     <p className="line-through">${flight.totalPrice}</p>
                   </div>
                   <div className="text-right">
                     <p className="font-medium">{selectedFlight.flightNumber}</p>
-                    <p>{formatDate(selectedFlight.departureTime)}</p>
+                    <p>{fmtDate(selectedFlight.departureTime)}</p>
                     <p className="font-medium text-blue-600">${newFlightPrice}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Hotel change */}
             <Card>
-              <CardContent className="p-3 space-y-3">
-                <div className="flex items-center gap-2 text-sm font-medium">
-                  <Building className="size-4 text-blue-600" />
-                  Hotel Dates Adjusted — {hotel.hotelName}
+              <CardContent className="p-3">
+                <div className="flex items-center gap-2 text-sm font-medium mb-2">
+                  <Building className="size-4 text-blue-600" /> New Hotel
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div className="text-muted-foreground">
-                    <p className="line-through">{formatDate(hotel.checkIn)} – {formatDate(hotel.checkOut)}</p>
-                    <p className="line-through">{originalNights} nights · ${hotel.totalPrice}</p>
+                    <p className="line-through">{hotel.hotelName}</p>
+                    <p className="line-through">{hotel.roomTypeName}</p>
+                    <p className="line-through">{fmtDate(hotel.checkIn)} – {fmtDate(hotel.checkOut)}</p>
+                    <p className="line-through">${hotel.totalPrice}</p>
                   </div>
                   <div className="text-right">
-                    <p>{formatDate(newCheckIn)} – {formatDate(newCheckOut)}</p>
-                    <p className="font-medium">{newNights} nights · <span className="text-blue-600">${newHotelPrice}</span></p>
+                    <p className="font-medium">{selectedHotel.name}</p>
+                    <p>{selectedRoom.name}</p>
+                    <p>{fmtDate(selectedFlight.arrivalTime.split("T")[0])} – {fmtDate(endDate)}</p>
+                    <p className="font-medium text-blue-600">${newHotelPrice}</p>
                   </div>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Adjust check-out if needed</Label>
-                  <Input type="date" value={newCheckOut} onChange={(e) => setNewCheckOut(e.target.value)} />
                 </div>
               </CardContent>
             </Card>
 
-            {/* Total */}
             <div className="flex justify-between items-center font-semibold border-t pt-3">
               <span>New Total</span>
-              <span className="text-lg text-blue-600">${newFlightPrice + newHotelPrice}</span>
+              <span className="text-lg text-blue-600">${newTotal}</span>
             </div>
-            <div className="text-xs text-muted-foreground text-center">
-              Was ${flight.totalPrice + hotel.totalPrice} · Difference: {newFlightPrice + newHotelPrice - flight.totalPrice - hotel.totalPrice >= 0 ? "+" : ""}${newFlightPrice + newHotelPrice - flight.totalPrice - hotel.totalPrice}
-            </div>
+            <p className="text-xs text-muted-foreground text-center">
+              Was ${oldTotal} · Difference: {newTotal - oldTotal >= 0 ? "+" : ""}${newTotal - oldTotal}
+            </p>
 
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setStep(2)} className="flex-1">Back</Button>
-              <Button onClick={handleConfirm} disabled={loading || newNights <= 0} className="flex-1 bg-blue-600 hover:bg-blue-700">
+              <Button variant="outline" onClick={() => setStep(3)} className="flex-1">Back</Button>
+              <Button onClick={handleConfirm} disabled={loading} className="flex-1 bg-blue-600 hover:bg-blue-700">
                 {loading ? "Updating..." : "Confirm Changes"}
               </Button>
             </div>
           </div>
         )}
 
-        {/* Step 4: Success */}
-        {step === 4 && (
+        {/* STEP 5: Success */}
+        {step === 5 && (
           <div className="text-center py-6">
             <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3">
               <Check className="size-6 text-green-600" />
@@ -338,7 +379,7 @@ export function ModifyTripDialog({
           </div>
         )}
       </DialogContent>
-    </Dialog>
+      </Dialog>
     </>
   );
 }

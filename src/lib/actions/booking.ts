@@ -328,41 +328,41 @@ export async function modifyTrip(
   flightBookingId: string,
   newFlightId: string,
   hotelBookingId: string,
+  newHotelId: string,
+  newRoomTypeId: string,
   newCheckIn: string,
-  newCheckOut: string
+  newCheckOut: string,
+  guests: number,
+  rooms: number
 ) {
   const session = await auth();
   if (!session?.user?.id) {
     return { success: false, error: "You must be signed in." };
   }
 
-  // Validate flight booking
   const oldFlightBooking = db.select().from(flightBookings).where(eq(flightBookings.id, flightBookingId)).get();
   if (!oldFlightBooking) return { success: false, error: "Flight booking not found." };
   if (oldFlightBooking.userId !== session.user.id) return { success: false, error: "Not your booking." };
-  if (oldFlightBooking.status === "cancelled") return { success: false, error: "Flight booking is already cancelled." };
+  if (oldFlightBooking.status === "cancelled") return { success: false, error: "Flight booking already cancelled." };
 
-  // Validate hotel booking
-  const hotelBooking = db.select().from(hotelBookings).where(eq(hotelBookings.id, hotelBookingId)).get();
-  if (!hotelBooking) return { success: false, error: "Hotel booking not found." };
-  if (hotelBooking.userId !== session.user.id) return { success: false, error: "Not your booking." };
-  if (hotelBooking.status === "cancelled") return { success: false, error: "Hotel booking is already cancelled." };
+  const oldHotelBooking = db.select().from(hotelBookings).where(eq(hotelBookings.id, hotelBookingId)).get();
+  if (!oldHotelBooking) return { success: false, error: "Hotel booking not found." };
+  if (oldHotelBooking.userId !== session.user.id) return { success: false, error: "Not your booking." };
+  if (oldHotelBooking.status === "cancelled") return { success: false, error: "Hotel booking already cancelled." };
 
-  // Validate new flight
   const newFlight = db.select().from(flights).where(eq(flights.id, newFlightId)).get();
   if (!newFlight) return { success: false, error: "New flight not found." };
 
-  // Validate hotel room type
-  const roomType = db.select().from(roomTypes).where(eq(roomTypes.id, hotelBooking.roomTypeId)).get();
-  if (!roomType) return { success: false, error: "Room type not found." };
+  const newRoomType = db.select().from(roomTypes).where(eq(roomTypes.id, newRoomTypeId)).get();
+  if (!newRoomType) return { success: false, error: "Room type not found." };
 
-  // Calculate new values
   const paxCount = JSON.parse(oldFlightBooking.passengers).length || 1;
   const pricePerPax = oldFlightBooking.seatClass === "business" ? newFlight.businessPrice : newFlight.economyPrice;
   const newFlightBookingId = uuid();
+  const newHotelBookingId = uuid();
   const nights = Math.ceil((new Date(newCheckOut).getTime() - new Date(newCheckIn).getTime()) / (1000 * 60 * 60 * 24));
   if (nights <= 0) return { success: false, error: "Check-out must be after check-in." };
-  const newHotelPrice = roomType.pricePerNight * nights * hotelBooking.rooms;
+  const newHotelPrice = newRoomType.pricePerNight * nights * rooms;
   const now = new Date().toISOString();
 
   try {
@@ -371,27 +371,31 @@ export async function modifyTrip(
       db.update(flightBookings).set({ status: "cancelled" }).where(eq(flightBookings.id, flightBookingId)).run();
       db.$client.prepare("UPDATE flights SET available_seats = available_seats + ? WHERE id = ?").run(paxCount, oldFlightBooking.flightId);
 
-      // 2. Book new flight with optimistic locking
+      // 2. Book new flight
       const res = db.$client.prepare("UPDATE flights SET available_seats = available_seats - ? WHERE id = ? AND available_seats >= ?").run(paxCount, newFlightId, paxCount);
       if (res.changes === 0) throw new Error("No seats available on the new flight.");
 
       db.insert(flightBookings).values({
-        id: newFlightBookingId,
-        userId: session.user!.id!,
-        flightId: newFlightId,
-        tripGroupId: oldFlightBooking.tripGroupId,
-        passengers: oldFlightBooking.passengers,
-        seatClass: oldFlightBooking.seatClass,
-        totalPrice: pricePerPax * paxCount,
-        status: "confirmed",
-        bookedAt: now,
+        id: newFlightBookingId, userId: session.user!.id!, flightId: newFlightId,
+        tripGroupId: oldFlightBooking.tripGroupId, passengers: oldFlightBooking.passengers,
+        seatClass: oldFlightBooking.seatClass, totalPrice: pricePerPax * paxCount,
+        status: "confirmed", bookedAt: now,
       }).run();
 
-      // 3. Update hotel dates + price
-      db.update(hotelBookings)
-        .set({ checkIn: newCheckIn, checkOut: newCheckOut, totalPrice: newHotelPrice })
-        .where(eq(hotelBookings.id, hotelBookingId))
-        .run();
+      // 3. Cancel old hotel + re-increment rooms
+      db.update(hotelBookings).set({ status: "cancelled" }).where(eq(hotelBookings.id, hotelBookingId)).run();
+      db.$client.prepare("UPDATE room_types SET available_count = available_count + ? WHERE id = ?").run(oldHotelBooking.rooms, oldHotelBooking.roomTypeId);
+
+      // 4. Book new hotel room
+      const hres = db.$client.prepare("UPDATE room_types SET available_count = available_count - ? WHERE id = ? AND available_count >= ?").run(rooms, newRoomTypeId, rooms);
+      if (hres.changes === 0) throw new Error("Room not available.");
+
+      db.insert(hotelBookings).values({
+        id: newHotelBookingId, userId: session.user!.id!, hotelId: newHotelId,
+        roomTypeId: newRoomTypeId, tripGroupId: oldFlightBooking.tripGroupId,
+        checkIn: newCheckIn, checkOut: newCheckOut, guests, rooms,
+        totalPrice: newHotelPrice, status: "confirmed", bookedAt: now,
+      }).run();
     })();
 
     return { success: true };

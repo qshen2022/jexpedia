@@ -209,11 +209,13 @@ export default async function MyTripsPage() {
                     hotel={{
                       bookingId: confirmedHotel.bookingId,
                       hotelName: confirmedHotel.hotelName,
+                      hotelCity: confirmedHotel.hotelCity,
                       roomTypeName: confirmedHotel.roomTypeName,
                       checkIn: confirmedHotel.checkIn,
                       checkOut: confirmedHotel.checkOut,
                       pricePerNight: confirmedHotel.pricePerNight,
                       rooms: confirmedHotel.rooms,
+                      guests: confirmedHotel.guests,
                       totalPrice: confirmedHotel.totalPrice,
                     }}
                   />
