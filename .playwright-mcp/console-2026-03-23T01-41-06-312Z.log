@@ -1,0 +1,56 @@
+[  188043ms] [ERROR] In HTML, %s cannot be a descendant of <%s>.
+This will cause a hydration error.%s <button> button 
+
+  ...
+    <SegmentViewNode type="page" pagePath="my-trips/p...">
+      <SegmentTrieNode>
+      <MyTripsPage>
+        <div className="max-w-3xl ...">
+          <h1>
+          <section className="mb-10">
+            <h2>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex items...">
+                  <h3>
+                  <ModifyTripDialog flight={{...}} hotel={{...}}>
+                    <Dialog open={false} onOpenChange={function onOpenChange}>
+                      <DialogRoot data-slot="dialog" open={false} onOpenChange={function onOpenChange}>
+                        <DialogTrigger>
+                          <DialogTrigger data-slot="dialog-tri...">
+>                           <button
+>                             type="button"
+>                             onClick={function onClick}
+>                             onMouseDown={function onMouseDown}
+>                             onKeyDown={function}
+>                             onKeyUp={function onKeyUp}
+>                             onPointerDown={function onPointerDown}
+>                             tabIndex={0}
+>                             disabled={false}
+>                             data-base-ui-click-trigger=""
+>                             id="base-ui-_r_c_"
+>                             data-slot="dialog-trigger"
+>                             ref={function}
+>                           >
+                              <Button variant="outline" size="sm" className="gap-1.5 te...">
+                                <Button data-slot="button" className={"group/bu..."}>
+>                                 <button
+>                                   type="button"
+>                                   onClick={function onClick}
+>                                   onMouseDown={function onMouseDown}
+>                                   onKeyDown={function}
+>                                   onKeyUp={function onKeyUp}
+>                                   onPointerDown={function onPointerDown}
+>                                   tabIndex={0}
+>                                   disabled={false}
+>                                   data-slot="button"
+>                                   ref={function}
+>                                   className={"group/button inline-flex shrink-0 items-center justify-center border ..."}
+>                                 >
+                        ...
+                ...
+              ...
+    ...
+ @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_115brz8._.js:3272
+[  188043ms] [ERROR] <%s> cannot contain a nested %s.
+See this log for the ancestor stack trace. button <button> @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_115brz8._.js:3272

@@ -167,11 +167,9 @@ export function ModifyTripDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
-      <DialogTrigger>
-        <Button variant="outline" size="sm" className="gap-1.5 text-blue-600 border-blue-200 hover:bg-blue-50">
-          <Pencil className="size-3.5" />
-          Modify Trip
-        </Button>
+      <DialogTrigger className="inline-flex h-7 items-center gap-1.5 rounded-lg border border-blue-200 px-2.5 text-sm font-medium text-blue-600 hover:bg-blue-50 transition-colors">
+        <Pencil className="size-3.5" />
+        Modify Trip
       </DialogTrigger>
       <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
         <DialogHeader>
