@@ -67,8 +67,8 @@ export function ModifyTripDialog({ flight, hotel }: { flight: FlightInfo; hotel:
   const [step, setStep] = useState(1);
 
   // Step 1: dates
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [departDate, setDepartDate] = useState("");
+  const [returnDate, setReturnDate] = useState("");
 
   // Step 2: flights
   const [flightResults, setFlightResults] = useState<SearchFlight[]>([]);
@@ -83,7 +83,7 @@ export function ModifyTripDialog({ flight, hotel }: { flight: FlightInfo; hotel:
   const [error, setError] = useState("");
 
   function reset() {
-    setStep(1); setStartDate(""); setEndDate("");
+    setStep(1); setDepartDate(""); setReturnDate("");
     setFlightResults([]); setSelectedFlight(null);
     setHotelResults([]); setSelectedHotel(null); setSelectedRoom(null);
     setLoading(false); setError("");
@@ -91,11 +91,12 @@ export function ModifyTripDialog({ flight, hotel }: { flight: FlightInfo; hotel:
 
   // Step 1 → 2: search flights
   async function handleSearchFlights() {
-    if (!startDate || !endDate) return;
+    if (!departDate || !returnDate) return;
+    if (returnDate <= departDate) { setError("Return date must be after departure."); return; }
     setLoading(true); setError("");
     try {
       const res = await fetch(
-        `/api/flights/search?from=${flight.departureAirport}&to=${flight.arrivalAirport}&date=${startDate}&pax=${flight.pax}&class=${flight.seatClass}`
+        `/api/flights/search?from=${flight.departureAirport}&to=${flight.arrivalAirport}&date=${departDate}&pax=${flight.pax}&class=${flight.seatClass}`
       );
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
@@ -115,7 +116,7 @@ export function ModifyTripDialog({ flight, hotel }: { flight: FlightInfo; hotel:
     try {
       const arrivalDate = f.arrivalTime.split("T")[0];
       const res = await fetch(
-        `/api/hotels/search?city=${encodeURIComponent(hotel.hotelCity)}&checkIn=${arrivalDate}&checkOut=${endDate}&guests=${hotel.guests}`
+        `/api/hotels/search?city=${encodeURIComponent(hotel.hotelCity)}&checkIn=${arrivalDate}&checkOut=${returnDate}&guests=${hotel.guests}`
       );
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
@@ -140,8 +141,8 @@ export function ModifyTripDialog({ flight, hotel }: { flight: FlightInfo; hotel:
     ? (flight.seatClass === "business" ? selectedFlight.businessPrice : selectedFlight.economyPrice) * flight.pax
     : 0;
   const newCheckIn = selectedFlight ? selectedFlight.arrivalTime.split("T")[0] : "";
-  const hotelNights = newCheckIn && endDate
-    ? Math.ceil((new Date(endDate).getTime() - new Date(newCheckIn).getTime()) / (1000 * 60 * 60 * 24))
+  const hotelNights = newCheckIn && returnDate
+    ? Math.ceil((new Date(returnDate).getTime() - new Date(newCheckIn).getTime()) / (1000 * 60 * 60 * 24))
     : 0;
   const newHotelPrice = selectedRoom ? selectedRoom.pricePerNight * Math.max(hotelNights, 0) * hotel.rooms : 0;
   const oldTotal = flight.totalPrice + hotel.totalPrice;
@@ -156,7 +157,7 @@ export function ModifyTripDialog({ flight, hotel }: { flight: FlightInfo; hotel:
       const result = await modifyTrip(
         flight.bookingId, selectedFlight.id,
         hotel.bookingId, selectedHotel.id, selectedRoom.id,
-        checkIn, endDate, hotel.guests, hotel.rooms
+        checkIn, returnDate, hotel.guests, hotel.rooms
       );
       if (result.success) {
         setStep(5);
@@ -227,15 +228,15 @@ export function ModifyTripDialog({ flight, hotel }: { flight: FlightInfo; hotel:
             </Card>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>New start date</Label>
-                <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                <Label>Departure date</Label>
+                <Input type="date" value={departDate} onChange={(e) => setDepartDate(e.target.value)} />
               </div>
               <div className="space-y-1.5">
-                <Label>New end date</Label>
-                <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                <Label>Return date (hotel check-out)</Label>
+                <Input type="date" value={returnDate} onChange={(e) => setReturnDate(e.target.value)} />
               </div>
             </div>
-            <Button onClick={handleSearchFlights} disabled={!startDate || !endDate || loading}
+            <Button onClick={handleSearchFlights} disabled={!departDate || !returnDate || loading}
               className="w-full bg-blue-600 hover:bg-blue-700">
               {loading ? "Searching..." : "Find Flights & Hotels"}
             </Button>
@@ -245,7 +246,7 @@ export function ModifyTripDialog({ flight, hotel }: { flight: FlightInfo; hotel:
         {/* STEP 2: Select flight */}
         {step === 2 && (
           <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">{flightResults.length} flights on {fmtDate(startDate)}</p>
+            <p className="text-sm text-muted-foreground">{flightResults.length} flights on {fmtDate(departDate)}</p>
             {flightResults.map((f) => {
               const price = flight.seatClass === "business" ? f.businessPrice : f.economyPrice;
               return (
@@ -277,7 +278,7 @@ export function ModifyTripDialog({ flight, hotel }: { flight: FlightInfo; hotel:
         {step === 3 && (
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground">
-              {hotelResults.length} hotels in {hotel.hotelCity} · {fmtDate(selectedFlight!.arrivalTime.split("T")[0])} – {fmtDate(endDate)}
+              {hotelResults.length} hotels in {hotel.hotelCity} · {fmtDate(selectedFlight!.arrivalTime.split("T")[0])} – {fmtDate(returnDate)}
             </p>
             {hotelResults.map((h) => (
               <Card key={h.id}>
@@ -360,7 +361,7 @@ export function ModifyTripDialog({ flight, hotel }: { flight: FlightInfo; hotel:
                     <span className="font-bold text-blue-600">${newHotelPrice}</span>
                   </div>
                   <p className="text-xs text-muted-foreground pl-5">
-                    {selectedRoom.name} · {fmtDate(newCheckIn)} – {fmtDate(endDate)} ({hotelNights}n) · ${selectedRoom.pricePerNight}/night × {hotelNights} nights
+                    {selectedRoom.name} · {fmtDate(newCheckIn)} – {fmtDate(returnDate)} ({hotelNights}n) · ${selectedRoom.pricePerNight}/night × {hotelNights} nights
                   </p>
                   <div className="border-t pt-2 mt-1 text-right font-semibold">
                     Total: <span className="text-blue-600">${newTotal}</span>
@@ -380,7 +381,7 @@ export function ModifyTripDialog({ flight, hotel }: { flight: FlightInfo; hotel:
 
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setStep(3)} className="flex-1">Back</Button>
-              <Button onClick={handleConfirm} disabled={loading} className="flex-1 bg-blue-600 hover:bg-blue-700">
+              <Button onClick={handleConfirm} disabled={loading || hotelNights <= 0} className="flex-1 bg-blue-600 hover:bg-blue-700">
                 {loading ? "Updating..." : "Confirm Changes"}
               </Button>
             </div>
