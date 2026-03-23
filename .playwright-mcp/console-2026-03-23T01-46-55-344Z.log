@@ -74,3 +74,181 @@ https://react.dev/link/hydration-mismatch
     at performWorkOnRoot (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:9061:150)
     at performWorkOnRootViaSchedulerTask (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:10255:9)
     at MessagePort.performWorkUntilDeadline (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_0rpq4pf._.js:2647:64)
+[  108202ms] [ERROR] ./src/app/my-trips/modify-trip-dialog.tsx:344:1
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+  342 |     </Dialog>
+  343 |   );
+> 344 | }
+      | ^
+  345 |
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/app/my-trips/modify-trip-dialog.tsx
+    ./src/app/my-trips/page.tsx @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_115brz8._.js:3272
+[  108374ms] [ERROR] ./src/app/my-trips/modify-trip-dialog.tsx:344:1
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+  342 |     </Dialog>
+  343 |   );
+> 344 | }
+      | ^
+  345 |
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/app/my-trips/modify-trip-dialog.tsx
+    ./src/app/my-trips/page.tsx @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_115brz8._.js:3272
+[  108375ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/my-trips?_rsc=5ex8q:0
+[  108442ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/my-trips:0
+[  108580ms] Error: ./src/app/my-trips/modify-trip-dialog.tsx:344:1
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+  342 |     </Dialog>
+  343 |   );
+> 344 | }
+      | ^
+  345 |
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/app/my-trips/modify-trip-dialog.tsx
+    ./src/app/my-trips/page.tsx
+
+
+    at <unknown> (Error: ./src/app/my-trips/modify-trip-dialog.tsx:344:1)
+    at Object.getCompilationErrors (file:///Users/qifei/code/jexpedia/node_modules/next/dist/server/dev/hot-reloader-turbopack.js:1189:59)
+    at DevBundlerService.getCompilationError (file:///Users/qifei/code/jexpedia/node_modules/next/dist/server/lib/dev-bundler-service.js:44:55)
+    at DevServer.getCompilationError (file:///Users/qifei/code/jexpedia/node_modules/next/dist/server/dev/next-dev-server.js:719:42)
+    at DevServer.findPageComponents (file:///Users/qifei/code/jexpedia/node_modules/next/dist/server/dev/next-dev-server.js:689:43)
+    at async DevServer.renderErrorToResponseImpl (file:///Users/qifei/code/jexpedia/node_modules/next/dist/server/base-server.js:1745:26)
+[  108588ms] [ERROR] ./src/app/my-trips/modify-trip-dialog.tsx:344:1
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+  342 |     </Dialog>
+  343 |   );
+> 344 | }
+      | ^
+  345 |
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/app/my-trips/modify-trip-dialog.tsx
+    ./src/app/my-trips/page.tsx @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_0u_w_5s._.js:1945
+[  108595ms] [ERROR] ./src/app/my-trips/modify-trip-dialog.tsx:344:1
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+  342 |     </Dialog>
+  343 |   );
+> 344 | }
+      | ^
+  345 |
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/app/my-trips/modify-trip-dialog.tsx
+    ./src/app/my-trips/page.tsx @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_0u_w_5s._.js:1945
+[  108625ms] [ERROR] ./src/app/my-trips/modify-trip-dialog.tsx:344:1
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+  342 |     </Dialog>
+  343 |   );
+> 344 | }
+      | ^
+  345 |
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/app/my-trips/modify-trip-dialog.tsx
+    ./src/app/my-trips/page.tsx @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_0u_w_5s._.js:1945
+[  118047ms] [ERROR] ./src/app/my-trips/modify-trip-dialog.tsx:344:1
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+  342 |     </Dialog>
+  343 |   );
+> 344 | }
+      | ^
+  345 |
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/app/my-trips/modify-trip-dialog.tsx
+    ./src/app/my-trips/page.tsx @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_0u_w_5s._.js:1945
+[  118101ms] [ERROR] ./src/app/my-trips/modify-trip-dialog.tsx:344:1
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+  342 |     </Dialog>
+  343 |   );
+> 344 | }
+      | ^
+  345 |
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/app/my-trips/modify-trip-dialog.tsx
+    ./src/app/my-trips/page.tsx @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_0u_w_5s._.js:1945
+[  122862ms] [ERROR] ./src/app/my-trips/modify-trip-dialog.tsx:344:1
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+  342 |     </Dialog>
+  343 |   );
+> 344 | }
+      | ^
+  345 |
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/app/my-trips/modify-trip-dialog.tsx
+    ./src/app/my-trips/page.tsx @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_0u_w_5s._.js:1945
+[  122927ms] [ERROR] ./src/app/my-trips/modify-trip-dialog.tsx:344:1
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+  342 |     </Dialog>
+  343 |   );
+> 344 | }
+      | ^
+  345 |
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/app/my-trips/modify-trip-dialog.tsx
+    ./src/app/my-trips/page.tsx @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_0u_w_5s._.js:1945
+[  132775ms] [ERROR] ./src/app/my-trips/modify-trip-dialog.tsx:344:1
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+  342 |     </Dialog>
+  343 |   );
+> 344 | }
+      | ^
+  345 |
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/app/my-trips/modify-trip-dialog.tsx
+    ./src/app/my-trips/page.tsx @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_0u_w_5s._.js:1945
+[  132848ms] [ERROR] ./src/app/my-trips/modify-trip-dialog.tsx:344:1
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+  342 |     </Dialog>
+  343 |   );
+> 344 | }
+      | ^
+  345 |
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/app/my-trips/modify-trip-dialog.tsx
+    ./src/app/my-trips/page.tsx @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_0u_w_5s._.js:1945

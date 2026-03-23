@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
-  DialogTrigger,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -166,11 +165,16 @@ export function ModifyTripDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
-      <DialogTrigger className="inline-flex h-7 items-center gap-1.5 rounded-lg border border-blue-200 px-2.5 text-sm font-medium text-blue-600 hover:bg-blue-50 transition-colors">
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="inline-flex h-7 items-center gap-1.5 rounded-lg border border-blue-200 px-2.5 text-sm font-medium text-blue-600 hover:bg-blue-50 transition-colors"
+      >
         <Pencil className="size-3.5" />
         Modify Trip
-      </DialogTrigger>
+      </button>
+      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
       <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
@@ -335,5 +339,6 @@ export function ModifyTripDialog({
         )}
       </DialogContent>
     </Dialog>
+    </>
   );
 }
