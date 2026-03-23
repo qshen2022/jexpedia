@@ -9,8 +9,7 @@ const dbDir = path.join(process.cwd(), "data");
 if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
 
 const dbPath = path.join(dbDir, "jexpedia.db");
-// Remove existing DB for clean re-seed
-if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath);
+// Preserve existing DB — only re-seed travel data, keep users + bookings
 
 const sqlite = new Database(dbPath);
 sqlite.pragma("journal_mode = WAL");
@@ -18,7 +17,7 @@ sqlite.pragma("busy_timeout = 5000");
 
 const db = drizzle(sqlite, { schema });
 
-// Create tables
+// Create tables (IF NOT EXISTS keeps user data intact)
 sqlite.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
@@ -104,6 +103,20 @@ sqlite.exec(`
   CREATE INDEX IF NOT EXISTS idx_airports_city ON airports(city);
   CREATE INDEX IF NOT EXISTS idx_flight_bookings_user ON flight_bookings(user_id);
   CREATE INDEX IF NOT EXISTS idx_hotel_bookings_user ON hotel_bookings(user_id);
+`);
+
+// Clear travel data (bookings reference flights/hotels, so clear those too)
+console.log("Clearing existing data (preserving user accounts)...");
+sqlite.exec(`
+  PRAGMA foreign_keys = OFF;
+  DELETE FROM hotel_bookings;
+  DELETE FROM flight_bookings;
+  DELETE FROM room_types;
+  DELETE FROM hotels;
+  DELETE FROM flights;
+  DELETE FROM airlines;
+  DELETE FROM airports;
+  PRAGMA foreign_keys = ON;
 `);
 
 // --- SEED DATA ---
