@@ -323,3 +323,80 @@ export async function modifyHotelDates(bookingId: string, newCheckIn: string, ne
     return { success: false, error: message };
   }
 }
+
+export async function modifyTrip(
+  flightBookingId: string,
+  newFlightId: string,
+  hotelBookingId: string,
+  newCheckIn: string,
+  newCheckOut: string
+) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { success: false, error: "You must be signed in." };
+  }
+
+  // Validate flight booking
+  const oldFlightBooking = db.select().from(flightBookings).where(eq(flightBookings.id, flightBookingId)).get();
+  if (!oldFlightBooking) return { success: false, error: "Flight booking not found." };
+  if (oldFlightBooking.userId !== session.user.id) return { success: false, error: "Not your booking." };
+  if (oldFlightBooking.status === "cancelled") return { success: false, error: "Flight booking is already cancelled." };
+
+  // Validate hotel booking
+  const hotelBooking = db.select().from(hotelBookings).where(eq(hotelBookings.id, hotelBookingId)).get();
+  if (!hotelBooking) return { success: false, error: "Hotel booking not found." };
+  if (hotelBooking.userId !== session.user.id) return { success: false, error: "Not your booking." };
+  if (hotelBooking.status === "cancelled") return { success: false, error: "Hotel booking is already cancelled." };
+
+  // Validate new flight
+  const newFlight = db.select().from(flights).where(eq(flights.id, newFlightId)).get();
+  if (!newFlight) return { success: false, error: "New flight not found." };
+
+  // Validate hotel room type
+  const roomType = db.select().from(roomTypes).where(eq(roomTypes.id, hotelBooking.roomTypeId)).get();
+  if (!roomType) return { success: false, error: "Room type not found." };
+
+  // Calculate new values
+  const paxCount = JSON.parse(oldFlightBooking.passengers).length || 1;
+  const pricePerPax = oldFlightBooking.seatClass === "business" ? newFlight.businessPrice : newFlight.economyPrice;
+  const newFlightBookingId = uuid();
+  const nights = Math.ceil((new Date(newCheckOut).getTime() - new Date(newCheckIn).getTime()) / (1000 * 60 * 60 * 24));
+  if (nights <= 0) return { success: false, error: "Check-out must be after check-in." };
+  const newHotelPrice = roomType.pricePerNight * nights * hotelBooking.rooms;
+  const now = new Date().toISOString();
+
+  try {
+    db.$client.transaction(() => {
+      // 1. Cancel old flight + re-increment seats
+      db.update(flightBookings).set({ status: "cancelled" }).where(eq(flightBookings.id, flightBookingId)).run();
+      db.$client.prepare("UPDATE flights SET available_seats = available_seats + ? WHERE id = ?").run(paxCount, oldFlightBooking.flightId);
+
+      // 2. Book new flight with optimistic locking
+      const res = db.$client.prepare("UPDATE flights SET available_seats = available_seats - ? WHERE id = ? AND available_seats >= ?").run(paxCount, newFlightId, paxCount);
+      if (res.changes === 0) throw new Error("No seats available on the new flight.");
+
+      db.insert(flightBookings).values({
+        id: newFlightBookingId,
+        userId: session.user!.id!,
+        flightId: newFlightId,
+        tripGroupId: oldFlightBooking.tripGroupId,
+        passengers: oldFlightBooking.passengers,
+        seatClass: oldFlightBooking.seatClass,
+        totalPrice: pricePerPax * paxCount,
+        status: "confirmed",
+        bookedAt: now,
+      }).run();
+
+      // 3. Update hotel dates + price
+      db.update(hotelBookings)
+        .set({ checkIn: newCheckIn, checkOut: newCheckOut, totalPrice: newHotelPrice })
+        .where(eq(hotelBookings.id, hotelBookingId))
+        .run();
+    })();
+
+    return { success: true };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Trip modification failed.";
+    return { success: false, error: message };
+  }
+}

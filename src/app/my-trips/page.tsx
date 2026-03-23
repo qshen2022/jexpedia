@@ -16,6 +16,7 @@ import { Plane, Hotel, Search } from "lucide-react";
 import { CancelBookingButton } from "./cancel-button";
 import { ChangeFlightDatesButton } from "./change-flight-dates";
 import { ChangeHotelDatesButton } from "./change-hotel-dates";
+import { ModifyTripDialog } from "./modify-trip-dialog";
 
 function formatDate(iso: string) {
   const d = new Date(iso);
@@ -180,27 +181,63 @@ export default async function MyTripsPage() {
 
     return (
       <>
-        {Array.from(tripGroups.entries()).map(([groupId, group]) => (
-          <div key={groupId} className="space-y-2">
-            <h3 className="text-sm font-medium text-muted-foreground">Trip</h3>
-            <div className="space-y-2 pl-2 border-l-2 border-muted">
-              {group.flights.map((booking) => (
-                <FlightBookingCard
-                  key={booking.bookingId}
-                  booking={booking}
-                  upcoming={upcoming}
-                />
-              ))}
-              {group.hotels.map((booking) => (
-                <HotelBookingCard
-                  key={booking.bookingId}
-                  booking={booking}
-                  upcoming={upcoming}
-                />
-              ))}
+        {Array.from(tripGroups.entries()).map(([groupId, group]) => {
+          const hasBothConfirmed = upcoming
+            && group.flights.some((f) => f.status === "confirmed")
+            && group.hotels.some((h) => h.status === "confirmed");
+          const confirmedFlight = group.flights.find((f) => f.status === "confirmed");
+          const confirmedHotel = group.hotels.find((h) => h.status === "confirmed");
+
+          return (
+            <div key={groupId} className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium text-muted-foreground">
+                  Trip to {confirmedFlight?.arrivalAirport || "destination"}
+                </h3>
+                {hasBothConfirmed && confirmedFlight && confirmedHotel && (
+                  <ModifyTripDialog
+                    flight={{
+                      bookingId: confirmedFlight.bookingId,
+                      departureAirport: confirmedFlight.departureAirport,
+                      arrivalAirport: confirmedFlight.arrivalAirport,
+                      departureTime: confirmedFlight.departureTime,
+                      flightNumber: confirmedFlight.flightNumber,
+                      seatClass: confirmedFlight.seatClass,
+                      pax: JSON.parse(confirmedFlight.passengers).length || 1,
+                      totalPrice: confirmedFlight.totalPrice,
+                    }}
+                    hotel={{
+                      bookingId: confirmedHotel.bookingId,
+                      hotelName: confirmedHotel.hotelName,
+                      roomTypeName: confirmedHotel.roomTypeName,
+                      checkIn: confirmedHotel.checkIn,
+                      checkOut: confirmedHotel.checkOut,
+                      pricePerNight: confirmedHotel.pricePerNight,
+                      rooms: confirmedHotel.rooms,
+                      totalPrice: confirmedHotel.totalPrice,
+                    }}
+                  />
+                )}
+              </div>
+              <div className="space-y-2 pl-2 border-l-2 border-blue-200">
+                {group.flights.map((booking) => (
+                  <FlightBookingCard
+                    key={booking.bookingId}
+                    booking={booking}
+                    upcoming={upcoming}
+                  />
+                ))}
+                {group.hotels.map((booking) => (
+                  <HotelBookingCard
+                    key={booking.bookingId}
+                    booking={booking}
+                    upcoming={upcoming}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         {ungroupedFlights.map((booking) => (
           <FlightBookingCard
             key={booking.bookingId}
