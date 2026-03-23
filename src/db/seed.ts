@@ -105,19 +105,30 @@ sqlite.exec(`
   CREATE INDEX IF NOT EXISTS idx_hotel_bookings_user ON hotel_bookings(user_id);
 `);
 
-// Clear travel data (bookings reference flights/hotels, so clear those too)
-console.log("Clearing existing data (preserving user accounts)...");
-sqlite.exec(`
-  PRAGMA foreign_keys = OFF;
-  DELETE FROM hotel_bookings;
-  DELETE FROM flight_bookings;
-  DELETE FROM room_types;
-  DELETE FROM hotels;
-  DELETE FROM flights;
-  DELETE FROM airlines;
-  DELETE FROM airports;
-  PRAGMA foreign_keys = ON;
-`);
+// Check if data already exists — skip seeding unless --force is passed
+const forceReseed = process.argv.includes("--force");
+const existingFlights = sqlite.prepare("SELECT COUNT(*) as count FROM flights").get() as { count: number };
+
+if (existingFlights.count > 0 && !forceReseed) {
+  console.log(`Database already has ${existingFlights.count} flights. Skipping seed.`);
+  console.log("Run 'npm run seed -- --force' to re-seed (preserves user accounts, clears bookings).");
+  process.exit(0);
+}
+
+if (forceReseed && existingFlights.count > 0) {
+  console.log("Force re-seed: clearing travel data (preserving user accounts)...");
+  sqlite.exec(`
+    PRAGMA foreign_keys = OFF;
+    DELETE FROM hotel_bookings;
+    DELETE FROM flight_bookings;
+    DELETE FROM room_types;
+    DELETE FROM hotels;
+    DELETE FROM flights;
+    DELETE FROM airlines;
+    DELETE FROM airports;
+    PRAGMA foreign_keys = ON;
+  `);
+}
 
 // --- SEED DATA ---
 
