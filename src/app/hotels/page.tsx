@@ -189,6 +189,9 @@ async function HotelResults({
               amenities={hotel.amenities}
               cheapestPrice={hotel.roomTypes?.[0]?.pricePerNight ?? 0}
               tripGroupId={tripGroupId}
+              checkIn={checkIn}
+              checkOut={checkOut}
+              guests={guests}
             />
         ))}
       </div>

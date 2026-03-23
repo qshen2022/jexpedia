@@ -15,6 +15,9 @@ interface HotelCardProps {
   amenities: string
   cheapestPrice: number
   tripGroupId?: string
+  checkIn?: string
+  checkOut?: string
+  guests?: number
 }
 
 function StarRating({ rating }: { rating: number }) {
@@ -70,6 +73,9 @@ export function HotelCard({
   amenities,
   cheapestPrice,
   tripGroupId,
+  checkIn,
+  checkOut,
+  guests,
 }: HotelCardProps) {
   let amenitiesList: string[] = []
   try {
@@ -131,7 +137,12 @@ export function HotelCard({
               </p>
               <p className="text-[10px] text-muted-foreground">per night</p>
             </div>
-            <Link href={`/hotels/${id}${tripGroupId ? `?tripGroupId=${tripGroupId}` : ""}`}>
+            <Link href={`/hotels/${id}?${new URLSearchParams({
+              ...(checkIn ? { checkIn } : {}),
+              ...(checkOut ? { checkOut } : {}),
+              ...(guests ? { guests: String(guests) } : {}),
+              ...(tripGroupId ? { tripGroupId } : {}),
+            }).toString()}`}>
               <Button
                 size="sm"
                 className="bg-[#1a56db] text-white hover:bg-[#1648c0]"

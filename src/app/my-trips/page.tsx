@@ -12,7 +12,6 @@ import {
 import { eq } from "drizzle-orm";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Plane, Hotel, Search } from "lucide-react";
 import { CancelBookingButton } from "./cancel-button";
 import { ChangeFlightDatesButton } from "./change-flight-dates";
@@ -144,6 +143,82 @@ export default async function MyTripsPage() {
   const hasPast = pastFlights.length > 0 || pastHotels.length > 0;
   const hasAny = hasUpcoming || hasPast;
 
+  // Group bookings by tripGroupId
+  function groupBookings(
+    flightList: FlightBookingRow[],
+    hotelList: HotelBookingRow[],
+    upcoming: boolean,
+  ) {
+    const tripGroups = new Map<
+      string,
+      { flights: FlightBookingRow[]; hotels: HotelBookingRow[] }
+    >();
+    const ungroupedFlights: FlightBookingRow[] = [];
+    const ungroupedHotels: HotelBookingRow[] = [];
+
+    for (const f of flightList) {
+      if (f.tripGroupId) {
+        if (!tripGroups.has(f.tripGroupId)) {
+          tripGroups.set(f.tripGroupId, { flights: [], hotels: [] });
+        }
+        tripGroups.get(f.tripGroupId)!.flights.push(f);
+      } else {
+        ungroupedFlights.push(f);
+      }
+    }
+
+    for (const h of hotelList) {
+      if (h.tripGroupId) {
+        if (!tripGroups.has(h.tripGroupId)) {
+          tripGroups.set(h.tripGroupId, { flights: [], hotels: [] });
+        }
+        tripGroups.get(h.tripGroupId)!.hotels.push(h);
+      } else {
+        ungroupedHotels.push(h);
+      }
+    }
+
+    return (
+      <>
+        {Array.from(tripGroups.entries()).map(([groupId, group]) => (
+          <div key={groupId} className="space-y-2">
+            <h3 className="text-sm font-medium text-muted-foreground">Trip</h3>
+            <div className="space-y-2 pl-2 border-l-2 border-muted">
+              {group.flights.map((booking) => (
+                <FlightBookingCard
+                  key={booking.bookingId}
+                  booking={booking}
+                  upcoming={upcoming}
+                />
+              ))}
+              {group.hotels.map((booking) => (
+                <HotelBookingCard
+                  key={booking.bookingId}
+                  booking={booking}
+                  upcoming={upcoming}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
+        {ungroupedFlights.map((booking) => (
+          <FlightBookingCard
+            key={booking.bookingId}
+            booking={booking}
+            upcoming={upcoming}
+          />
+        ))}
+        {ungroupedHotels.map((booking) => (
+          <HotelBookingCard
+            key={booking.bookingId}
+            booking={booking}
+            upcoming={upcoming}
+          />
+        ))}
+      </>
+    );
+  }
+
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6">My Trips</h1>
@@ -176,12 +251,7 @@ export default async function MyTripsPage() {
         <section className="mb-10">
           <h2 className="text-lg font-semibold mb-4">Upcoming Trips</h2>
           <div className="space-y-4">
-            {upcomingFlights.map((booking) => (
-              <FlightBookingCard key={booking.bookingId} booking={booking} />
-            ))}
-            {upcomingHotels.map((booking) => (
-              <HotelBookingCard key={booking.bookingId} booking={booking} />
-            ))}
+            {groupBookings(upcomingFlights, upcomingHotels, true)}
           </div>
         </section>
       )}
@@ -191,12 +261,7 @@ export default async function MyTripsPage() {
         <section>
           <h2 className="text-lg font-semibold mb-4">Past Trips</h2>
           <div className="space-y-4">
-            {pastFlights.map((booking) => (
-              <FlightBookingCard key={booking.bookingId} booking={booking} />
-            ))}
-            {pastHotels.map((booking) => (
-              <HotelBookingCard key={booking.bookingId} booking={booking} />
-            ))}
+            {groupBookings(pastFlights, pastHotels, false)}
           </div>
         </section>
       )}
