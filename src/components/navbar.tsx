@@ -25,7 +25,7 @@ interface NavbarProps {
 const navLinks = [
   { href: "/flights", label: "Flights", icon: PlaneIcon },
   { href: "/hotels", label: "Hotels", icon: BuildingIcon },
-  { href: "/trips", label: "My Trips", icon: MapIcon },
+  { href: "/my-trips", label: "My Trips", icon: MapIcon },
 ]
 
 export function Navbar({ session }: NavbarProps) {
