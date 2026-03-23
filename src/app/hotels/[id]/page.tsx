@@ -3,7 +3,6 @@ import Link from "next/link";
 import { getHotelById } from "@/lib/queries/hotels";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
 
 function StarRating({ rating }: { rating: number }) {
   return (
@@ -202,7 +201,7 @@ export default async function HotelDetailPage({
                   </div>
                   <Link
                     href={`/booking/hotel?hotelId=${hotel.id}&roomTypeId=${room.id}&checkIn=${checkIn}&checkOut=${checkOut}&guests=${guests}`}
-                    className={buttonVariants({ size: "lg" })}
+                    className="inline-flex h-9 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
                   >
                     Select
                   </Link>

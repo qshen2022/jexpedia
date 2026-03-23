@@ -12,7 +12,7 @@ import {
 import { eq } from "drizzle-orm";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Plane, Hotel, Search } from "lucide-react";
 import { CancelBookingButton } from "./cancel-button";
 
@@ -156,7 +156,7 @@ export default async function MyTripsPage() {
                 Ready to explore?
               </p>
             </div>
-            <Link href="/" className={buttonVariants({ size: "lg" })}>
+            <Link href="/" className="inline-flex h-9 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors">
               Search Now
             </Link>
           </CardContent>

@@ -1,0 +1,226 @@
+[      47ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/flights/5deda553-cc9a-4207-945d-20f27d36d9cf:0
+[     181ms] [ERROR] In HTML, %s cannot be a descendant of <%s>.
+This will cause a hydration error.%s <button> button 
+
+  ...
+    <RedirectErrorBoundary router={{...}}>
+      <Head>
+      <__next_root_layout_boundary__>
+        <SegmentViewNode type="layout" pagePath="layout.tsx">
+          <SegmentTrieNode>
+          <link>
+          <script>
+          <script>
+          <script>
+          <RootLayout>
+            <html lang="en" className="geist_a715...">
+              <body className="min-h-full...">
+                <Navbar session={null}>
+                  <header className="sticky top...">
+                    <div className="mx-auto fl...">
+                      <LinkComponent>
+                      <nav>
+                      <div>
+                      <div className="md:hidden">
+                        <Sheet open={false} onOpenChange={function bound dispatchSetState}>
+                          <DialogRoot data-slot="sheet" open={false} onOpenChange={function bound dispatchSetState}>
+                            <SheetTrigger>
+                              <DialogTrigger data-slot="sheet-trigger">
+>                               <button
+>                                 type="button"
+>                                 onClick={function onClick}
+>                                 onMouseDown={function onMouseDown}
+>                                 onKeyDown={function}
+>                                 onKeyUp={function onKeyUp}
+>                                 onPointerDown={function onPointerDown}
+>                                 tabIndex={0}
+>                                 disabled={false}
+>                                 data-base-ui-click-trigger=""
+>                                 id="base-ui-_r_2_"
+>                                 data-slot="sheet-trigger"
+>                                 ref={function}
+>                               >
+                                  <Button variant="ghost" size="icon" aria-label="Open menu">
+                                    <Button data-slot="button" className={"group/bu..."} aria-label="Open menu">
+>                                     <button
+>                                       type="button"
+>                                       onClick={function onClick}
+>                                       onMouseDown={function onMouseDown}
+>                                       onKeyDown={function}
+>                                       onKeyUp={function onKeyUp}
+>                                       onPointerDown={function onPointerDown}
+>                                       tabIndex={0}
+>                                       disabled={false}
+>                                       data-slot="button"
+>                                       aria-label="Open menu"
+>                                       ref={function}
+>                                       className={"group/button inline-flex shrink-0 items-center justify-center rou..."}
+>                                     >
+                            ...
+                ...
+      ...
+ @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_115brz8._.js:3272
+[     182ms] [ERROR] <%s> cannot contain a nested %s.
+See this log for the ancestor stack trace. button <button> @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_115brz8._.js:3272
+[     217ms] Error: Attempted to call buttonVariants() from the server but buttonVariants is on the client. It's not possible to invoke a client function from the server, it can only be rendered as a Component or passed to props of a Client Component.
+    at FlightDetailPage (about://React/Server/file:///Users/qifei/code/jexpedia/.next/dev/server/chunks/ssr/%5Broot-of-the-server%5D__09a5x34._.js?0:1014:205)
+    at resolveErrorDev (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_0p3wegg._.js:1919:105)
+    at processFullStringRow (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_0p3wegg._.js:2434:29)
+    at processFullBinaryRow (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_0p3wegg._.js:2393:9)
+    at processBinaryChunk (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_0p3wegg._.js:2502:221)
+    at progress (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_0p3wegg._.js:2689:13)
+[   16909ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/flights/5deda553-cc9a-4207-945d-20f27d36d9cf:0
+[   17019ms] [ERROR] In HTML, %s cannot be a descendant of <%s>.
+This will cause a hydration error.%s <button> button 
+
+  ...
+    <RedirectErrorBoundary router={{...}}>
+      <Head>
+      <__next_root_layout_boundary__>
+        <SegmentViewNode type="layout" pagePath="layout.tsx">
+          <SegmentTrieNode>
+          <link>
+          <script>
+          <script>
+          <script>
+          <RootLayout>
+            <html lang="en" className="geist_a715...">
+              <body className="min-h-full...">
+                <Navbar session={null}>
+                  <header className="sticky top...">
+                    <div className="mx-auto fl...">
+                      <LinkComponent>
+                      <nav>
+                      <div>
+                      <div className="md:hidden">
+                        <Sheet open={false} onOpenChange={function bound dispatchSetState}>
+                          <DialogRoot data-slot="sheet" open={false} onOpenChange={function bound dispatchSetState}>
+                            <SheetTrigger>
+                              <DialogTrigger data-slot="sheet-trigger">
+>                               <button
+>                                 type="button"
+>                                 onClick={function onClick}
+>                                 onMouseDown={function onMouseDown}
+>                                 onKeyDown={function}
+>                                 onKeyUp={function onKeyUp}
+>                                 onPointerDown={function onPointerDown}
+>                                 tabIndex={0}
+>                                 disabled={false}
+>                                 data-base-ui-click-trigger=""
+>                                 id="base-ui-_r_2_"
+>                                 data-slot="sheet-trigger"
+>                                 ref={function}
+>                               >
+                                  <Button variant="ghost" size="icon" aria-label="Open menu">
+                                    <Button data-slot="button" className={"group/bu..."} aria-label="Open menu">
+>                                     <button
+>                                       type="button"
+>                                       onClick={function onClick}
+>                                       onMouseDown={function onMouseDown}
+>                                       onKeyDown={function}
+>                                       onKeyUp={function onKeyUp}
+>                                       onPointerDown={function onPointerDown}
+>                                       tabIndex={0}
+>                                       disabled={false}
+>                                       data-slot="button"
+>                                       aria-label="Open menu"
+>                                       ref={function}
+>                                       className={"group/button inline-flex shrink-0 items-center justify-center rou..."}
+>                                     >
+                            ...
+                ...
+      ...
+ @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_115brz8._.js:3272
+[   17020ms] [ERROR] <%s> cannot contain a nested %s.
+See this log for the ancestor stack trace. button <button> @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_115brz8._.js:3272
+[   17052ms] ReferenceError: buttonVariants is not defined
+    at FlightDetailPage (about://React/Server/file:///Users/qifei/code/jexpedia/.next/dev/server/chunks/ssr/%5Broot-of-the-server%5D__0ecqs.b._.js?0:966:52)
+    at resolveErrorDev (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_0p3wegg._.js:1919:105)
+    at processFullStringRow (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_0p3wegg._.js:2434:29)
+    at processFullBinaryRow (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_0p3wegg._.js:2393:9)
+    at processBinaryChunk (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_0p3wegg._.js:2502:221)
+    at progress (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_0p3wegg._.js:2689:13)
+[   22678ms] [WARNING] [Fast Refresh] performing full reload because your application had an unrecoverable error @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[   22902ms] [ERROR] In HTML, %s cannot be a descendant of <%s>.
+This will cause a hydration error.%s <button> button 
+
+  ...
+    <RedirectErrorBoundary router={{...}}>
+      <Head>
+      <__next_root_layout_boundary__>
+        <SegmentViewNode type="layout" pagePath="layout.tsx">
+          <SegmentTrieNode>
+          <link>
+          <script>
+          <script>
+          <script>
+          <RootLayout>
+            <html lang="en" className="geist_a715...">
+              <body className="min-h-full...">
+                <Navbar session={null}>
+                  <header className="sticky top...">
+                    <div className="mx-auto fl...">
+                      <LinkComponent>
+                      <nav>
+                      <div>
+                      <div className="md:hidden">
+                        <Sheet open={false} onOpenChange={function bound dispatchSetState}>
+                          <DialogRoot data-slot="sheet" open={false} onOpenChange={function bound dispatchSetState}>
+                            <SheetTrigger>
+                              <DialogTrigger data-slot="sheet-trigger">
+>                               <button
+>                                 type="button"
+>                                 onClick={function onClick}
+>                                 onMouseDown={function onMouseDown}
+>                                 onKeyDown={function}
+>                                 onKeyUp={function onKeyUp}
+>                                 onPointerDown={function onPointerDown}
+>                                 tabIndex={0}
+>                                 disabled={false}
+>                                 data-base-ui-click-trigger=""
+>                                 id="base-ui-_R_3hlb_"
+>                                 data-slot="sheet-trigger"
+>                                 ref={function}
+>                               >
+                                  <Button variant="ghost" size="icon" aria-label="Open menu">
+                                    <Button data-slot="button" className={"group/bu..."} aria-label="Open menu">
+>                                     <button
+>                                       type="button"
+>                                       onClick={function onClick}
+>                                       onMouseDown={function onMouseDown}
+>                                       onKeyDown={function}
+>                                       onKeyUp={function onKeyUp}
+>                                       onPointerDown={function onPointerDown}
+>                                       tabIndex={0}
+>                                       disabled={false}
+>                                       data-slot="button"
+>                                       aria-label="Open menu"
+>                                       ref={function}
+>                                       className={"group/button inline-flex shrink-0 items-center justify-center rou..."}
+>                                     >
+                            ...
+                ...
+      ...
+ @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_115brz8._.js:3272
+[   22902ms] [ERROR] <%s> cannot contain a nested %s.
+See this log for the ancestor stack trace. button <button> @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_115brz8._.js:3272
+[   22933ms] Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+    at throwOnHydrationMismatch (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:3318:56)
+    at beginWork (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:6758:918)
+    at runWithFiberInDEV (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:965:74)
+    at performUnitOfWork (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:9555:97)
+    at workLoopConcurrentByScheduler (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:9551:58)
+    at renderRootConcurrent (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:9534:71)
+    at performWorkOnRoot (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:9061:150)
+    at performWorkOnRootViaSchedulerTask (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:10255:9)
+    at MessagePort.performWorkUntilDeadline (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_0rpq4pf._.js:2647:64)

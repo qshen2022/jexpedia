@@ -94,10 +94,11 @@ export function Navbar({ session }: NavbarProps) {
         {/* Mobile hamburger menu */}
         <div className="md:hidden">
           <Sheet open={open} onOpenChange={setOpen}>
-            <SheetTrigger>
-              <Button variant="ghost" size="icon" aria-label="Open menu">
-                <MenuIcon className="size-5" />
-              </Button>
+            <SheetTrigger
+              className="inline-flex size-8 items-center justify-center rounded-lg hover:bg-muted transition-colors"
+              aria-label="Open menu"
+            >
+              <MenuIcon className="size-5" />
             </SheetTrigger>
             <SheetContent side="right" className="w-72">
               <SheetHeader>

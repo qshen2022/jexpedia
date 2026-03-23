@@ -3,7 +3,6 @@ import Link from "next/link";
 import { getFlightById } from "@/lib/queries/flights";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
 
 function formatTime(iso: string) {
   const d = new Date(iso);
@@ -292,7 +291,7 @@ export default async function FlightDetailPage({
             {/* Book button */}
             <Link
               href={`/booking/flight?flightId=${flight.id}&class=${selectedClass}&pax=${pax}`}
-              className={buttonVariants({ size: "lg", className: "w-full mt-2" })}
+              className="inline-flex h-9 w-full mt-2 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
             >
               Book This Flight
             </Link>
