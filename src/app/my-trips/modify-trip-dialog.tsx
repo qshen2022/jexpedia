@@ -139,12 +139,14 @@ export function ModifyTripDialog({ flight, hotel }: { flight: FlightInfo; hotel:
   const newFlightPrice = selectedFlight
     ? (flight.seatClass === "business" ? selectedFlight.businessPrice : selectedFlight.economyPrice) * flight.pax
     : 0;
-  const nights = startDate && endDate
-    ? Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24))
+  const newCheckIn = selectedFlight ? selectedFlight.arrivalTime.split("T")[0] : "";
+  const hotelNights = newCheckIn && endDate
+    ? Math.ceil((new Date(endDate).getTime() - new Date(newCheckIn).getTime()) / (1000 * 60 * 60 * 24))
     : 0;
-  const newHotelPrice = selectedRoom ? selectedRoom.pricePerNight * Math.max(nights, 0) * hotel.rooms : 0;
+  const newHotelPrice = selectedRoom ? selectedRoom.pricePerNight * Math.max(hotelNights, 0) * hotel.rooms : 0;
   const oldTotal = flight.totalPrice + hotel.totalPrice;
   const newTotal = newFlightPrice + newHotelPrice;
+  const oldNights = Math.ceil((new Date(hotel.checkOut).getTime() - new Date(hotel.checkIn).getTime()) / (1000 * 60 * 60 * 24));
 
   async function handleConfirm() {
     if (!selectedFlight || !selectedHotel || !selectedRoom) return;
@@ -308,56 +310,73 @@ export function ModifyTripDialog({ flight, hotel }: { flight: FlightInfo; hotel:
 
         {/* STEP 4: Review & Confirm */}
         {step === 4 && selectedFlight && selectedHotel && selectedRoom && (
-          <div className="space-y-3">
-            <Card>
-              <CardContent className="p-3">
-                <div className="flex items-center gap-2 text-sm font-medium mb-2">
-                  <Plane className="size-4 text-blue-600" /> New Flight
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div className="text-muted-foreground">
-                    <p className="line-through">{flight.flightNumber}</p>
-                    <p className="line-through">{fmtDate(flight.departureTime)}</p>
-                    <p className="line-through">${flight.totalPrice}</p>
+          <div className="space-y-4">
+            {/* Current Trip */}
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Current Trip</p>
+              <Card className="bg-muted/30 border-dashed">
+                <CardContent className="p-3 space-y-2 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <Plane className="size-3.5" />
+                    <span>{flight.flightNumber} · {fmtDate(flight.departureTime)} · ${flight.totalPrice}</span>
                   </div>
-                  <div className="text-right">
-                    <p className="font-medium">{selectedFlight.flightNumber}</p>
-                    <p>{fmtDate(selectedFlight.departureTime)}</p>
-                    <p className="font-medium text-blue-600">${newFlightPrice}</p>
+                  <div className="flex items-center gap-2">
+                    <Building className="size-3.5" />
+                    <span>{hotel.hotelName} · {hotel.roomTypeName} · {fmtDate(hotel.checkIn)} – {fmtDate(hotel.checkOut)} ({oldNights}n) · ${hotel.totalPrice}</span>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-3">
-                <div className="flex items-center gap-2 text-sm font-medium mb-2">
-                  <Building className="size-4 text-blue-600" /> New Hotel
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div className="text-muted-foreground">
-                    <p className="line-through">{hotel.hotelName}</p>
-                    <p className="line-through">{hotel.roomTypeName}</p>
-                    <p className="line-through">{fmtDate(hotel.checkIn)} – {fmtDate(hotel.checkOut)}</p>
-                    <p className="line-through">${hotel.totalPrice}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-medium">{selectedHotel.name}</p>
-                    <p>{selectedRoom.name}</p>
-                    <p>{fmtDate(selectedFlight.arrivalTime.split("T")[0])} – {fmtDate(endDate)}</p>
-                    <p className="font-medium text-blue-600">${newHotelPrice}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="flex justify-between items-center font-semibold border-t pt-3">
-              <span>New Total</span>
-              <span className="text-lg text-blue-600">${newTotal}</span>
+                  <div className="text-right font-medium">Total: ${oldTotal}</div>
+                </CardContent>
+              </Card>
             </div>
-            <p className="text-xs text-muted-foreground text-center">
-              Was ${oldTotal} · Difference: {newTotal - oldTotal >= 0 ? "+" : ""}${newTotal - oldTotal}
-            </p>
+
+            {/* Arrow */}
+            <div className="flex justify-center">
+              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                <ArrowRight className="size-4 text-blue-600 rotate-90" />
+              </div>
+            </div>
+
+            {/* New Trip */}
+            <div>
+              <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-2">New Trip</p>
+              <Card className="border-blue-200">
+                <CardContent className="p-3 space-y-2 text-sm">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Plane className="size-3.5 text-blue-600" />
+                      <span className="font-medium">{selectedFlight.airlineName} {selectedFlight.flightNumber}</span>
+                    </div>
+                    <span className="font-bold text-blue-600">${newFlightPrice}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground pl-5">
+                    {fmtDate(selectedFlight.departureTime)} · {fmtTime(selectedFlight.departureTime)} → {fmtTime(selectedFlight.arrivalTime)} · {fmtDur(selectedFlight.durationMinutes)}
+                  </p>
+                  <div className="border-t pt-2 mt-1" />
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Building className="size-3.5 text-blue-600" />
+                      <span className="font-medium">{selectedHotel.name}</span>
+                    </div>
+                    <span className="font-bold text-blue-600">${newHotelPrice}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground pl-5">
+                    {selectedRoom.name} · {fmtDate(newCheckIn)} – {fmtDate(endDate)} ({hotelNights}n) · ${selectedRoom.pricePerNight}/night × {hotelNights} nights
+                  </p>
+                  <div className="border-t pt-2 mt-1 text-right font-semibold">
+                    Total: <span className="text-blue-600">${newTotal}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Price comparison */}
+            <div className="rounded-lg bg-muted/50 p-3 text-center text-sm">
+              {newTotal <= oldTotal ? (
+                <p className="text-green-600 font-medium">You save ${oldTotal - newTotal} on this change</p>
+              ) : (
+                <p className="text-amber-600 font-medium">${newTotal - oldTotal} more than your current trip</p>
+              )}
+            </div>
 
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setStep(3)} className="flex-1">Back</Button>
