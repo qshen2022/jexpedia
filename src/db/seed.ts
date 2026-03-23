@@ -90,6 +90,7 @@ sqlite.exec(`
     user_id TEXT NOT NULL REFERENCES users(id),
     hotel_id TEXT NOT NULL REFERENCES hotels(id),
     room_type_id TEXT NOT NULL REFERENCES room_types(id),
+    trip_group_id TEXT,
     check_in TEXT NOT NULL,
     check_out TEXT NOT NULL,
     guests INTEGER NOT NULL,

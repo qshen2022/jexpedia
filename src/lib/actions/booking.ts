@@ -40,12 +40,12 @@ export async function bookFlight(formData: FormData) {
     seatClass === "business" ? flight.businessPrice : flight.economyPrice;
   const totalPrice = pricePerPassenger * passengers.length;
   const bookingId = uuid();
+  const tripGroupId = uuid();
   const now = new Date().toISOString();
 
   try {
     const result = db.$client
       .transaction(() => {
-        // Optimistic locking: decrement only if seats are available
         const paxCount = passengers.length;
         const updateResult = db.$client.prepare(
           "UPDATE flights SET available_seats = available_seats - ? WHERE id = ? AND available_seats >= ?"
@@ -60,6 +60,7 @@ export async function bookFlight(formData: FormData) {
             id: bookingId,
             userId: session.user!.id!,
             flightId,
+            tripGroupId,
             passengers: JSON.stringify(passengers),
             seatClass,
             totalPrice,
@@ -68,7 +69,7 @@ export async function bookFlight(formData: FormData) {
           })
           .run();
 
-        return { success: true as const, bookingId };
+        return { success: true as const, bookingId, tripGroupId };
       })();
 
     return result;
@@ -90,6 +91,7 @@ export async function bookHotel(formData: FormData) {
   const checkOut = formData.get("checkOut") as string;
   const guests = parseInt(formData.get("guests") as string, 10);
   const rooms = parseInt(formData.get("rooms") as string, 10) || 1;
+  const tripGroupId = (formData.get("tripGroupId") as string) || null;
 
   if (!hotelId || !roomTypeId || !checkIn || !checkOut || isNaN(guests)) {
     return { success: false, error: "Missing required fields." };
@@ -142,6 +144,7 @@ export async function bookHotel(formData: FormData) {
             userId: session.user!.id!,
             hotelId,
             roomTypeId,
+            tripGroupId,
             checkIn,
             checkOut,
             guests,
@@ -233,6 +236,87 @@ export async function cancelBooking(type: "flight" | "hotel", bookingId: string)
     }
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Cancellation failed.";
+    return { success: false, error: message };
+  }
+}
+
+export async function modifyFlightDates(oldBookingId: string, newFlightId: string) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { success: false, error: "You must be signed in." };
+  }
+
+  const oldBooking = db.select().from(flightBookings).where(eq(flightBookings.id, oldBookingId)).get();
+  if (!oldBooking) return { success: false, error: "Booking not found." };
+  if (oldBooking.userId !== session.user.id) return { success: false, error: "Not your booking." };
+  if (oldBooking.status === "cancelled") return { success: false, error: "Booking is already cancelled." };
+
+  const newFlight = db.select().from(flights).where(eq(flights.id, newFlightId)).get();
+  if (!newFlight) return { success: false, error: "New flight not found." };
+
+  const paxCount = JSON.parse(oldBooking.passengers).length || 1;
+  const pricePerPax = oldBooking.seatClass === "business" ? newFlight.businessPrice : newFlight.economyPrice;
+  const newBookingId = uuid();
+  const now = new Date().toISOString();
+
+  try {
+    db.$client.transaction(() => {
+      // Cancel old booking + re-increment seats
+      db.update(flightBookings).set({ status: "cancelled" }).where(eq(flightBookings.id, oldBookingId)).run();
+      db.$client.prepare("UPDATE flights SET available_seats = available_seats + ? WHERE id = ?").run(paxCount, oldBooking.flightId);
+
+      // Book new flight with optimistic locking
+      const res = db.$client.prepare("UPDATE flights SET available_seats = available_seats - ? WHERE id = ? AND available_seats >= ?").run(paxCount, newFlightId, paxCount);
+      if (res.changes === 0) throw new Error("No seats available on the new flight.");
+
+      db.insert(flightBookings).values({
+        id: newBookingId,
+        userId: session.user!.id!,
+        flightId: newFlightId,
+        tripGroupId: oldBooking.tripGroupId,
+        passengers: oldBooking.passengers,
+        seatClass: oldBooking.seatClass,
+        totalPrice: pricePerPax * paxCount,
+        status: "confirmed",
+        bookedAt: now,
+      }).run();
+    })();
+
+    return { success: true, newBookingId };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Modification failed.";
+    return { success: false, error: message };
+  }
+}
+
+export async function modifyHotelDates(bookingId: string, newCheckIn: string, newCheckOut: string) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { success: false, error: "You must be signed in." };
+  }
+
+  const booking = db.select().from(hotelBookings).where(eq(hotelBookings.id, bookingId)).get();
+  if (!booking) return { success: false, error: "Booking not found." };
+  if (booking.userId !== session.user.id) return { success: false, error: "Not your booking." };
+  if (booking.status === "cancelled") return { success: false, error: "Booking is already cancelled." };
+
+  const roomType = db.select().from(roomTypes).where(eq(roomTypes.id, booking.roomTypeId)).get();
+  if (!roomType) return { success: false, error: "Room type not found." };
+
+  const nights = Math.ceil((new Date(newCheckOut).getTime() - new Date(newCheckIn).getTime()) / (1000 * 60 * 60 * 24));
+  if (nights <= 0) return { success: false, error: "Check-out must be after check-in." };
+
+  const newTotalPrice = roomType.pricePerNight * nights * booking.rooms;
+
+  try {
+    db.update(hotelBookings)
+      .set({ checkIn: newCheckIn, checkOut: newCheckOut, totalPrice: newTotalPrice })
+      .where(eq(hotelBookings.id, bookingId))
+      .run();
+
+    return { success: true };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Modification failed.";
     return { success: false, error: message };
   }
 }

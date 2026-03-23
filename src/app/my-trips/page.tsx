@@ -15,6 +15,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Plane, Hotel, Search } from "lucide-react";
 import { CancelBookingButton } from "./cancel-button";
+import { ChangeFlightDatesButton } from "./change-flight-dates";
+import { ChangeHotelDatesButton } from "./change-hotel-dates";
 
 function formatDate(iso: string) {
   const d = new Date(iso);
@@ -38,6 +40,7 @@ function formatTime(iso: string) {
 interface FlightBookingRow {
   bookingId: string;
   flightId: string;
+  tripGroupId: string | null;
   passengers: string;
   seatClass: string;
   totalPrice: number;
@@ -53,6 +56,7 @@ interface FlightBookingRow {
 interface HotelBookingRow {
   bookingId: string;
   hotelId: string;
+  tripGroupId: string | null;
   checkIn: string;
   checkOut: string;
   guests: number;
@@ -64,6 +68,7 @@ interface HotelBookingRow {
   hotelCity: string;
   hotelCountry: string;
   roomTypeName: string;
+  pricePerNight: number;
 }
 
 export default async function MyTripsPage() {
@@ -79,6 +84,7 @@ export default async function MyTripsPage() {
     .select({
       bookingId: flightBookings.id,
       flightId: flightBookings.flightId,
+      tripGroupId: flightBookings.tripGroupId,
       passengers: flightBookings.passengers,
       seatClass: flightBookings.seatClass,
       totalPrice: flightBookings.totalPrice,
@@ -99,6 +105,7 @@ export default async function MyTripsPage() {
     .select({
       bookingId: hotelBookings.id,
       hotelId: hotelBookings.hotelId,
+      tripGroupId: hotelBookings.tripGroupId,
       checkIn: hotelBookings.checkIn,
       checkOut: hotelBookings.checkOut,
       guests: hotelBookings.guests,
@@ -110,6 +117,7 @@ export default async function MyTripsPage() {
       hotelCity: hotels.city,
       hotelCountry: hotels.country,
       roomTypeName: roomTypes.name,
+      pricePerNight: roomTypes.pricePerNight,
     })
     .from(hotelBookings)
     .innerJoin(hotels, eq(hotelBookings.hotelId, hotels.id))
@@ -196,13 +204,15 @@ export default async function MyTripsPage() {
   );
 }
 
-function FlightBookingCard({ booking }: { booking: FlightBookingRow }) {
+function FlightBookingCard({ booking, upcoming }: { booking: FlightBookingRow; upcoming?: boolean }) {
   let passengers: { firstName: string; lastName: string }[] = [];
   try {
     passengers = JSON.parse(booking.passengers);
   } catch {
     // ignore
   }
+
+  const showActions = booking.status === "confirmed" && upcoming;
 
   return (
     <Card>
@@ -238,7 +248,23 @@ function FlightBookingCard({ booking }: { booking: FlightBookingRow }) {
                   {booking.seatClass}
                 </Badge>
               </div>
-              {booking.status === "confirmed" && (
+              {showActions && (
+                <div className="flex items-center gap-2">
+                  <ChangeFlightDatesButton
+                    bookingId={booking.bookingId}
+                    departureAirport={booking.departureAirport}
+                    arrivalAirport={booking.arrivalAirport}
+                    currentDate={booking.departureTime}
+                    seatClass={booking.seatClass}
+                    pax={passengers.length || 1}
+                  />
+                  <CancelBookingButton
+                    type="flight"
+                    bookingId={booking.bookingId}
+                  />
+                </div>
+              )}
+              {booking.status === "confirmed" && !upcoming && (
                 <CancelBookingButton
                   type="flight"
                   bookingId={booking.bookingId}
@@ -252,12 +278,14 @@ function FlightBookingCard({ booking }: { booking: FlightBookingRow }) {
   );
 }
 
-function HotelBookingCard({ booking }: { booking: HotelBookingRow }) {
+function HotelBookingCard({ booking, upcoming }: { booking: HotelBookingRow; upcoming?: boolean }) {
   const nights = Math.ceil(
     (new Date(booking.checkOut).getTime() -
       new Date(booking.checkIn).getTime()) /
       (1000 * 60 * 60 * 24)
   );
+
+  const showActions = booking.status === "confirmed" && upcoming;
 
   return (
     <Card>
@@ -285,7 +313,22 @@ function HotelBookingCard({ booking }: { booking: HotelBookingRow }) {
               <span className="text-sm font-medium">
                 ${booking.totalPrice.toLocaleString("en-US")}
               </span>
-              {booking.status === "confirmed" && (
+              {showActions && (
+                <div className="flex items-center gap-2">
+                  <ChangeHotelDatesButton
+                    bookingId={booking.bookingId}
+                    currentCheckIn={booking.checkIn}
+                    currentCheckOut={booking.checkOut}
+                    pricePerNight={booking.pricePerNight}
+                    rooms={booking.rooms}
+                  />
+                  <CancelBookingButton
+                    type="hotel"
+                    bookingId={booking.bookingId}
+                  />
+                </div>
+              )}
+              {booking.status === "confirmed" && !upcoming && (
                 <CancelBookingButton
                   type="hotel"
                   bookingId={booking.bookingId}

@@ -129,11 +129,13 @@ async function HotelResults({
   checkIn,
   checkOut,
   guests,
+  tripGroupId,
 }: {
   city: string;
   checkIn: string;
   checkOut: string;
   guests: number;
+  tripGroupId?: string;
 }) {
   const results = await searchHotels({ city, checkIn, checkOut, guests });
 
@@ -186,6 +188,7 @@ async function HotelResults({
               reviewCount={hotel.reviewCount}
               amenities={hotel.amenities}
               cheapestPrice={hotel.roomTypes?.[0]?.pricePerNight ?? 0}
+              tripGroupId={tripGroupId}
             />
         ))}
       </div>
@@ -206,6 +209,8 @@ export default async function HotelsPage({
     typeof params.guests === "string" ? parseInt(params.guests, 10) || 1 : 1;
   const rooms =
     typeof params.rooms === "string" ? parseInt(params.rooms, 10) || 1 : 1;
+  const tripGroupId =
+    typeof params.tripGroupId === "string" ? params.tripGroupId : undefined;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -245,6 +250,7 @@ export default async function HotelsPage({
                 checkIn={checkIn}
                 checkOut={checkOut}
                 guests={guests}
+                tripGroupId={tripGroupId}
               />
             </Suspense>
           ) : (

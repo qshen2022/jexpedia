@@ -72,6 +72,14 @@ export async function getFlightById(id: string) {
   return results[0] ?? null;
 }
 
+export function getAirportByCode(code: string) {
+  return db
+    .select({ code: airports.code, name: airports.name, city: airports.city, country: airports.country })
+    .from(airports)
+    .where(eq(airports.code, code))
+    .get() ?? null;
+}
+
 export async function searchAirports(query: string) {
   const pattern = `%${query}%`;
 

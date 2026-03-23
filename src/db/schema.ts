@@ -77,6 +77,7 @@ export const hotelBookings = sqliteTable("hotel_bookings", {
   userId: text("user_id").notNull().references(() => users.id),
   hotelId: text("hotel_id").notNull().references(() => hotels.id),
   roomTypeId: text("room_type_id").notNull().references(() => roomTypes.id),
+  tripGroupId: text("trip_group_id"),
   checkIn: text("check_in").notNull(),
   checkOut: text("check_out").notNull(),
   guests: integer("guests").notNull(),

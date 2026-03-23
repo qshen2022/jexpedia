@@ -60,6 +60,7 @@ export default function HotelBookingPage() {
   const checkOut = searchParams.get("checkOut") ?? "";
   const guests = parseInt(searchParams.get("guests") ?? "1", 10);
   const rooms = parseInt(searchParams.get("rooms") ?? "1", 10);
+  const tripGroupId = searchParams.get("tripGroupId") ?? "";
 
   const [currentStep, setCurrentStep] = useState(1);
   const [hotel, setHotel] = useState<HotelData | null>(null);
@@ -109,6 +110,7 @@ export default function HotelBookingPage() {
     formData.set("checkOut", checkOut);
     formData.set("guests", guests.toString());
     formData.set("rooms", rooms.toString());
+    if (tripGroupId) formData.set("tripGroupId", tripGroupId);
 
     const result = await bookHotel(formData);
 

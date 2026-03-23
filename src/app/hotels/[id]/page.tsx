@@ -35,6 +35,8 @@ export default async function HotelDetailPage({
   const checkOut = typeof sp.checkOut === "string" ? sp.checkOut : "";
   const guests =
     typeof sp.guests === "string" ? parseInt(sp.guests, 10) || 1 : 1;
+  const tripGroupId =
+    typeof sp.tripGroupId === "string" ? sp.tripGroupId : "";
 
   let amenitiesList: string[] = [];
   try {
@@ -200,7 +202,7 @@ export default async function HotelDetailPage({
                     )}
                   </div>
                   <Link
-                    href={`/booking/hotel?hotelId=${hotel.id}&roomTypeId=${room.id}&checkIn=${checkIn}&checkOut=${checkOut}&guests=${guests}`}
+                    href={`/booking/hotel?hotelId=${hotel.id}&roomTypeId=${room.id}&checkIn=${checkIn}&checkOut=${checkOut}&guests=${guests}${tripGroupId ? `&tripGroupId=${tripGroupId}` : ""}`}
                     className="inline-flex h-9 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
                   >
                     Select

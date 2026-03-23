@@ -9,7 +9,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Plane, CheckCircle2, ArrowRight } from "lucide-react";
+import { Loader2, Plane, CheckCircle2, ArrowRight, Building } from "lucide-react";
 
 interface FlightData {
   id: string;
@@ -73,6 +73,8 @@ export default function FlightBookingPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [bookingId, setBookingId] = useState("");
+  const [tripGroupId, setTripGroupId] = useState("");
+  const [arrivalCity, setArrivalCity] = useState("");
 
   const [passengers, setPassengers] = useState<Passenger[]>(
     Array.from({ length: pax }, () => ({ firstName: "", lastName: "" }))
@@ -131,6 +133,19 @@ export default function FlightBookingPage() {
 
     if (result.success && "bookingId" in result) {
       setBookingId(result.bookingId);
+      if ("tripGroupId" in result && result.tripGroupId) {
+        setTripGroupId(result.tripGroupId);
+      }
+      // Fetch arrival airport city for connected trip flow
+      try {
+        const airportRes = await fetch(`/api/airports/${flight.arrivalAirport}`);
+        if (airportRes.ok) {
+          const airportData = await airportRes.json();
+          setArrivalCity(airportData.city);
+        }
+      } catch {
+        // ignore — hotel CTA just won't show
+      }
       setCurrentStep(3);
     } else {
       setError("error" in result ? result.error : "Booking failed.");
@@ -473,6 +488,21 @@ export default function FlightBookingPage() {
               <Link href="/my-trips" className={buttonVariants({ size: "lg" })}>
                 View My Trips
               </Link>
+              {arrivalCity && (() => {
+                const arrivalDate = flight.arrivalTime.split("T")[0];
+                const checkOutDate = new Date(arrivalDate + "T00:00:00");
+                checkOutDate.setDate(checkOutDate.getDate() + 3);
+                const checkOut = checkOutDate.toISOString().split("T")[0];
+                return (
+                  <Link
+                    href={`/hotels?city=${encodeURIComponent(arrivalCity)}&checkIn=${arrivalDate}&checkOut=${checkOut}&guests=${pax}${tripGroupId ? `&tripGroupId=${tripGroupId}` : ""}`}
+                    className={buttonVariants({ variant: "outline", size: "lg" })}
+                  >
+                    <Building className="size-4" />
+                    Book a Hotel in {arrivalCity}
+                  </Link>
+                );
+              })()}
               <Link href="/" className={buttonVariants({ variant: "outline", size: "lg" })}>
                 Book Another Trip
               </Link>
