@@ -80,7 +80,8 @@ export async function searchAirports(query: string) {
     .from(airports)
     .where(
       sql`${airports.code} LIKE ${pattern} OR ${airports.name} LIKE ${pattern} OR ${airports.city} LIKE ${pattern}`
-    );
+    )
+    .limit(20);
 
   return results;
 }

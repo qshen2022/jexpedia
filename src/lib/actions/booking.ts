@@ -46,9 +46,10 @@ export async function bookFlight(formData: FormData) {
     const result = db.$client
       .transaction(() => {
         // Optimistic locking: decrement only if seats are available
+        const paxCount = passengers.length;
         const updateResult = db.$client.prepare(
-          "UPDATE flights SET available_seats = available_seats - 1 WHERE id = ? AND available_seats > 0"
-        ).run(flightId);
+          "UPDATE flights SET available_seats = available_seats - ? WHERE id = ? AND available_seats >= ?"
+        ).run(paxCount, flightId, paxCount);
 
         if (updateResult.changes === 0) {
           throw new Error("No seats available for this flight.");
@@ -185,6 +186,7 @@ export async function cancelBooking(type: "flight" | "hotel", bookingId: string)
         return { success: false, error: "Booking is already cancelled." };
       }
 
+      const paxCount = JSON.parse(booking.passengers).length || 1;
       db.$client.transaction(() => {
         db.update(flightBookings)
           .set({ status: "cancelled" })
@@ -192,7 +194,7 @@ export async function cancelBooking(type: "flight" | "hotel", bookingId: string)
           .run();
 
         db.update(flights)
-          .set({ availableSeats: sql`available_seats + 1` })
+          .set({ availableSeats: sql`available_seats + ${paxCount}` })
           .where(eq(flights.id, booking.flightId))
           .run();
       })();

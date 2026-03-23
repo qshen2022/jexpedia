@@ -39,7 +39,10 @@ export async function signUp(formData: FormData) {
       .run();
 
     return { success: true };
-  } catch {
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message.includes("UNIQUE constraint")) {
+      return { success: false, error: "An account with this email already exists." };
+    }
     return { success: false, error: "Failed to create account. Please try again." };
   }
 }
