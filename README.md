@@ -99,56 +99,149 @@ npm start
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        BROWSER                              │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌───────────────┐  │
-│  │  Home    │ │  Search  │ │ Booking  │ │  My Trips     │  │
-│  │ (search) │ │ Results  │ │ Wizard   │ │ + Modify Trip │  │
-│  └────┬─────┘ └────┬─────┘ └────┬─────┘ └──────┬────────┘  │
-└───────┼─────────────┼────────────┼──────────────┼───────────┘
-        │  Server Components       │  Server Actions
-┌───────┼─────────────┼────────────┼──────────────┼───────────┐
-│       ▼             ▼            ▼              ▼           │
-│  ┌────────────────────────────────────────────────────────┐  │
-│  │              Next.js 15 App Router                     │  │
-│  │                                                        │  │
-│  │  Server Components (reads)    Server Actions (writes)  │  │
-│  │  • searchFlights()            • bookFlight()           │  │
-│  │  • searchHotels()             • bookHotel()            │  │
-│  │  • getFlightById()            • cancelBooking()        │  │
-│  │  • getHotelById()             • modifyTrip()           │  │
-│  │  • getAirportByCode()         • signUp()               │  │
-│  │                                                        │  │
-│  │  ┌──────────────────────────────────────────────────┐  │  │
-│  │  │              Drizzle ORM (type-safe)              │  │  │
-│  │  └──────────────────┬───────────────────────────────┘  │  │
-│  │                     │                                   │  │
-│  │  ┌──────────────────▼───────────────────────────────┐  │  │
-│  │  │     SQLite (WAL mode, busy_timeout = 5s)         │  │  │
-│  │  │                                                   │  │  │
-│  │  │  users ─┐                                         │  │  │
-│  │  │  airports ──── flights ──── flight_bookings ──┐   │  │  │
-│  │  │  airlines ─┘                                  │   │  │  │
-│  │  │  hotels ──── room_types ──── hotel_bookings ──┤   │  │  │
-│  │  │                                    tripGroupId│   │  │  │
-│  │  │                              (links flight +  │   │  │  │
-│  │  │                               hotel as trip)──┘   │  │  │
-│  │  └───────────────────────────────────────────────────┘  │  │
-│  │                                                        │  │
-│  │  NextAuth.js v5 (JWT sessions, credentials provider)   │  │
-│  └────────────────────────────────────────────────────────┘  │
-│                    Next.js Server                            │
-└──────────────────────────────────────────────────────────────┘
+### System Overview
+
+```mermaid
+graph TB
+    subgraph Browser
+        Home[Home Page<br/>Search Form]
+        Search[Search Results<br/>Flights & Hotels]
+        Booking[Booking Wizard<br/>3-Step Flow]
+        Trips[My Trips<br/>Modify Trip Dialog]
+    end
+
+    subgraph "Next.js 15 App Router"
+        SC[Server Components<br/>Reads]
+        SA[Server Actions<br/>Writes]
+        API[API Routes<br/>Client Fetches]
+        Auth[NextAuth.js v5<br/>JWT Sessions]
+    end
+
+    subgraph "Drizzle ORM"
+        Queries[Type-safe Queries]
+        Transactions[Atomic Transactions<br/>Optimistic Locking]
+    end
+
+    subgraph "SQLite — WAL Mode"
+        DB[(jexpedia.db)]
+    end
+
+    Home --> SC
+    Search --> SC
+    Booking --> SA
+    Trips --> SA
+    Trips --> API
+
+    SC --> Queries
+    SA --> Transactions
+    API --> Queries
+
+    Queries --> DB
+    Transactions --> DB
+
+    Auth -.->|protects| SA
+    Auth -.->|protects| Trips
+
+    style Browser fill:#eff6ff,stroke:#1a56db
+    style DB fill:#f0fdf4,stroke:#16a34a
 ```
 
-### Data Flow
+### Data Model
 
+```mermaid
+erDiagram
+    users ||--o{ flight_bookings : books
+    users ||--o{ hotel_bookings : books
+    airports ||--o{ flights : departure
+    airports ||--o{ flights : arrival
+    airlines ||--o{ flights : operates
+    flights ||--o{ flight_bookings : booked_as
+    hotels ||--o{ room_types : has
+    hotels ||--o{ hotel_bookings : booked_at
+    room_types ||--o{ hotel_bookings : booked_as
+
+    users {
+        text id PK
+        text email UK
+        text name
+        text password_hash
+    }
+
+    flights {
+        text id PK
+        text airline_code FK
+        text flight_number
+        text departure_airport FK
+        text arrival_airport FK
+        text departure_time
+        integer duration_minutes
+        real economy_price
+        real business_price
+        integer available_seats
+    }
+
+    hotels {
+        text id PK
+        text name
+        text city
+        integer star_rating
+        real review_score
+        text amenities
+    }
+
+    room_types {
+        text id PK
+        text hotel_id FK
+        text name
+        real price_per_night
+        integer available_count
+    }
+
+    flight_bookings {
+        text id PK
+        text user_id FK
+        text flight_id FK
+        text trip_group_id
+        text passengers
+        text seat_class
+        real total_price
+        text status
+    }
+
+    hotel_bookings {
+        text id PK
+        text user_id FK
+        text hotel_id FK
+        text room_type_id FK
+        text trip_group_id
+        text check_in
+        text check_out
+        real total_price
+        text status
+    }
 ```
-Search:   URL params → Server Component → Drizzle query → SQLite → render results
-Booking:  Form submit → Server Action → transaction { decrement availability + insert booking }
-Modify:   Dialog → API fetch (search) → Server Action → transaction { cancel old + book new }
-Auth:     Credentials → bcrypt verify → JWT session → middleware protection
+
+### User Flow
+
+```mermaid
+flowchart LR
+    A[Search Flights] --> B[Select Flight]
+    B --> C[Book Flight]
+    C --> D{Book Hotel?}
+    D -->|Yes| E[Search Hotels<br/>in destination]
+    D -->|No| G[My Trips]
+    E --> F[Book Hotel]
+    F --> G
+    G --> H{Modify Trip?}
+    H -->|Yes| I[Pick New Dates]
+    I --> J[Choose Flight]
+    J --> K[Choose Hotel]
+    K --> L[Review & Confirm]
+    L --> G
+
+    style C fill:#f0fdf4,stroke:#16a34a
+    style F fill:#f0fdf4,stroke:#16a34a
+    style L fill:#eff6ff,stroke:#1a56db
 ```
 
 ### Key Design Decisions
