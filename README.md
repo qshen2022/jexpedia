@@ -97,6 +97,68 @@ npm run build
 npm start
 ```
 
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        BROWSER                              │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌───────────────┐  │
+│  │  Home    │ │  Search  │ │ Booking  │ │  My Trips     │  │
+│  │ (search) │ │ Results  │ │ Wizard   │ │ + Modify Trip │  │
+│  └────┬─────┘ └────┬─────┘ └────┬─────┘ └──────┬────────┘  │
+└───────┼─────────────┼────────────┼──────────────┼───────────┘
+        │  Server Components       │  Server Actions
+┌───────┼─────────────┼────────────┼──────────────┼───────────┐
+│       ▼             ▼            ▼              ▼           │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │              Next.js 15 App Router                     │  │
+│  │                                                        │  │
+│  │  Server Components (reads)    Server Actions (writes)  │  │
+│  │  • searchFlights()            • bookFlight()           │  │
+│  │  • searchHotels()             • bookHotel()            │  │
+│  │  • getFlightById()            • cancelBooking()        │  │
+│  │  • getHotelById()             • modifyTrip()           │  │
+│  │  • getAirportByCode()         • signUp()               │  │
+│  │                                                        │  │
+│  │  ┌──────────────────────────────────────────────────┐  │  │
+│  │  │              Drizzle ORM (type-safe)              │  │  │
+│  │  └──────────────────┬───────────────────────────────┘  │  │
+│  │                     │                                   │  │
+│  │  ┌──────────────────▼───────────────────────────────┐  │  │
+│  │  │     SQLite (WAL mode, busy_timeout = 5s)         │  │  │
+│  │  │                                                   │  │  │
+│  │  │  users ─┐                                         │  │  │
+│  │  │  airports ──── flights ──── flight_bookings ──┐   │  │  │
+│  │  │  airlines ─┘                                  │   │  │  │
+│  │  │  hotels ──── room_types ──── hotel_bookings ──┤   │  │  │
+│  │  │                                    tripGroupId│   │  │  │
+│  │  │                              (links flight +  │   │  │  │
+│  │  │                               hotel as trip)──┘   │  │  │
+│  │  └───────────────────────────────────────────────────┘  │  │
+│  │                                                        │  │
+│  │  NextAuth.js v5 (JWT sessions, credentials provider)   │  │
+│  └────────────────────────────────────────────────────────┘  │
+│                    Next.js Server                            │
+└──────────────────────────────────────────────────────────────┘
+```
+
+### Data Flow
+
+```
+Search:   URL params → Server Component → Drizzle query → SQLite → render results
+Booking:  Form submit → Server Action → transaction { decrement availability + insert booking }
+Modify:   Dialog → API fetch (search) → Server Action → transaction { cancel old + book new }
+Auth:     Credentials → bcrypt verify → JWT session → middleware protection
+```
+
+### Key Design Decisions
+
+- **SQLite** — zero-config embedded database, WAL mode for concurrent reads, sufficient for 100 users
+- **Server Components** for reads, **Server Actions** for writes — no separate API layer needed
+- **Optimistic locking** on bookings — `UPDATE ... WHERE available >= N` prevents overbooking
+- **tripGroupId** — UUID linking flight + hotel bookings as a single trip for grouped display and atomic modification
+- **URL-driven filters** — search params in the URL for shareable, bookmarkable searches
+
 ## Project Structure
 
 ```
