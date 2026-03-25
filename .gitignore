@@ -15,6 +15,7 @@
 
 # next.js
 /.next/
+.next/
 /out/
 
 # production
@@ -41,3 +42,4 @@ yarn-error.log*
 next-env.d.ts
 data/
 .env.local
+apps/web/.env.local

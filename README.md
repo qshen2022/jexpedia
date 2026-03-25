@@ -1,8 +1,39 @@
 # Jexpedia
 
-A full-stack travel booking platform built with Next.js 15, featuring end-to-end trip management for flights and hotels.
+A travel booking platform with a separated API service and web frontend, built as an npm workspaces monorepo.
 
 ![Home Page](docs/screenshots/initial.png)
+
+## Architecture
+
+```
+jexpedia/
+├── apps/
+│   ├── api/                    # Hono REST API — owns all data
+│   │   ├── src/
+│   │   │   ├── routes/         # REST endpoint handlers
+│   │   │   ├── services/       # Business logic (booking, auth, trips)
+│   │   │   ├── queries/        # Drizzle query functions
+│   │   │   ├── db/             # SQLite connection + schema + seed
+│   │   │   ├── middleware/     # JWT auth middleware
+│   │   │   └── index.ts        # Hono server entry (port 3001)
+│   │   └── package.json
+│   └── web/                    # Next.js frontend — NO database access
+│       ├── src/
+│       │   ├── app/            # Pages, layouts (same UI)
+│       │   ├── components/     # UI components (navbar, cards, etc.)
+│       │   ├── lib/
+│       │   │   ├── api-client.ts   # Typed HTTP client for the API
+│       │   │   └── use-api.ts      # React hook for client components
+│       │   └── auth.ts         # NextAuth config (calls API for auth)
+│       ├── next.config.ts
+│       └── package.json
+├── packages/
+│   └── shared/                 # Shared TypeScript types
+│       └── src/types.ts
+├── data/                       # SQLite database (shared location)
+└── package.json                # npm workspaces root
+```
 
 ## Features
 
@@ -38,7 +69,7 @@ Change your entire trip in one flow. Pick new dates, select a replacement flight
 
 ### User Authentication
 
-Sign up and sign in with email and password. Session-based auth protects booking and trip management pages.
+Sign up and sign in with email and password. JWT-based auth protects booking and trip management endpoints.
 
 ![Sign Up](docs/screenshots/signup.png)
 
@@ -46,10 +77,11 @@ Sign up and sign in with email and password. Session-based auth protects booking
 
 | Layer | Technology |
 |-------|-----------|
-| Framework | Next.js 15 (App Router) |
+| API Server | Hono (TypeScript, ~14KB) |
+| Frontend | Next.js 16 (App Router) |
 | Database | SQLite (better-sqlite3, WAL mode) |
 | ORM | Drizzle ORM |
-| Auth | NextAuth.js v5 |
+| Auth | JWT (API) + NextAuth.js v5 (web) |
 | UI | shadcn/ui + Tailwind CSS v4 |
 | Language | TypeScript |
 
@@ -88,18 +120,47 @@ User accounts are preserved across re-seeds. Use `npm run seed -- --force` to re
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+This starts both servers concurrently:
+- **API server**: [http://localhost:3001](http://localhost:3001)
+- **Web app**: [http://localhost:3000](http://localhost:3000)
+
+You can also run them individually:
+
+```bash
+npm run dev:api      # API server only (port 3001)
+npm run dev:web      # Next.js only (port 3000)
+```
 
 ### Build
 
 ```bash
-npm run build
-npm start
+npm run build        # builds the Next.js web app
+npm start            # starts the production web server
 ```
 
-## Architecture
+Note: The API server must be running separately in production.
 
-### System Overview
+## API Endpoints
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | /api/flights/search | No | Search flights by route + date |
+| GET | /api/flights/:id | No | Get flight details |
+| GET | /api/hotels/search | No | Search hotels by city |
+| GET | /api/hotels/:id | No | Get hotel details |
+| GET | /api/airports/:code | No | Airport lookup |
+| GET | /api/airports/search | No | Airport fuzzy search |
+| POST | /api/auth/signup | No | Create account, return JWT |
+| POST | /api/auth/signin | No | Validate credentials, return JWT |
+| POST | /api/bookings/flight | JWT | Book a flight |
+| POST | /api/bookings/hotel | JWT | Book a hotel |
+| POST | /api/bookings/:id/cancel | JWT | Cancel a booking |
+| GET | /api/trips | JWT | Get user's bookings (grouped) |
+| POST | /api/trips/modify | JWT | Modify trip (flight + hotel) |
+| POST | /api/bookings/flight/modify | JWT | Modify flight dates only |
+| POST | /api/bookings/hotel/modify | JWT | Modify hotel dates only |
+
+## System Overview
 
 ```mermaid
 graph TB
@@ -110,16 +171,18 @@ graph TB
         Trips[My Trips<br/>Modify Trip Dialog]
     end
 
-    subgraph "Next.js 15 App Router"
-        SC[Server Components<br/>Reads]
-        SA[Server Actions<br/>Writes]
-        API[API Routes<br/>Client Fetches]
-        Auth[NextAuth.js v5<br/>JWT Sessions]
+    subgraph "Next.js Web App :3000"
+        SC[Server Components]
+        CC[Client Components]
+        NA[NextAuth.js v5<br/>JWT Sessions]
+        AC[API Client<br/>Typed HTTP]
     end
 
-    subgraph "Drizzle ORM"
-        Queries[Type-safe Queries]
-        Transactions[Atomic Transactions<br/>Optimistic Locking]
+    subgraph "Hono API Server :3001"
+        Routes[REST Routes]
+        MW[JWT Middleware]
+        Services[Business Logic]
+        Queries[Drizzle Queries]
     end
 
     subgraph "SQLite — WAL Mode"
@@ -128,25 +191,24 @@ graph TB
 
     Home --> SC
     Search --> SC
-    Booking --> SA
-    Trips --> SA
-    Trips --> API
+    Booking --> CC
+    Trips --> CC
 
-    SC --> Queries
-    SA --> Transactions
-    API --> Queries
+    SC --> AC
+    CC --> AC
+    NA -.->|accessToken| AC
 
+    AC -->|HTTP| Routes
+    Routes --> MW
+    MW --> Services
+    Services --> Queries
     Queries --> DB
-    Transactions --> DB
-
-    Auth -.->|protects| SA
-    Auth -.->|protects| Trips
 
     style Browser fill:#eff6ff,stroke:#1a56db
     style DB fill:#f0fdf4,stroke:#16a34a
 ```
 
-### Data Model
+## Data Model
 
 ```mermaid
 erDiagram
@@ -221,7 +283,7 @@ erDiagram
     }
 ```
 
-### User Flow
+## User Flow
 
 ```mermaid
 flowchart LR
@@ -244,80 +306,45 @@ flowchart LR
     style L fill:#eff6ff,stroke:#1a56db
 ```
 
-### Key Design Decisions
+## Auth Architecture
 
-- **SQLite** — zero-config embedded database, WAL mode for concurrent reads, sufficient for 100 users
-- **Server Components** for reads, **Server Actions** for writes — no separate API layer needed
+1. **API server** issues JWTs signed with `AUTH_SECRET` via `jsonwebtoken`
+2. **Web app** uses NextAuth.js v5 — its `authorize` function calls `POST /api/auth/signin`
+3. NextAuth JWT callback stores the API token as `accessToken`
+4. Server Components read `session.accessToken` and pass to the API client
+5. Client Components get the token via `AuthProvider` React context + `useApi()` hook
+
+## Key Design Decisions
+
+- **Monorepo with npm workspaces** — shared types, single `npm install`, independent scaling
+- **Hono for the API** — TypeScript-first, Web Standard Request/Response, ~14KB, built-in CORS + JWT
+- **SQLite** — zero-config embedded database, WAL mode for concurrent reads
 - **Optimistic locking** on bookings — `UPDATE ... WHERE available >= N` prevents overbooking
 - **tripGroupId** — UUID linking flight + hotel bookings as a single trip for grouped display and atomic modification
 - **URL-driven filters** — search params in the URL for shareable, bookmarkable searches
 
-## Project Structure
-
-```
-src/
-├── app/                          # Next.js App Router pages
-│   ├── page.tsx                  # Home (search form)
-│   ├── flights/                  # Flight search + detail
-│   ├── hotels/                   # Hotel search + detail
-│   ├── booking/                  # Flight + hotel booking wizards
-│   ├── my-trips/                 # Trip management + modification
-│   ├── auth/                     # Sign in + sign up
-│   └── api/                      # API routes (airports, flights, hotels)
-├── components/                   # Shared UI components
-│   ├── navbar.tsx                # Top navigation
-│   ├── search-form.tsx           # Hero search with tabs
-│   ├── flight-card.tsx           # Flight result card
-│   ├── hotel-card.tsx            # Hotel result card
-│   └── ui/                      # shadcn/ui components
-├── db/
-│   ├── schema.ts                 # Drizzle schema (8 tables)
-│   ├── index.ts                  # DB connection (WAL mode)
-│   └── seed.ts                   # Data seeder
-├── lib/
-│   ├── actions/                  # Server Actions (booking, auth)
-│   └── queries/                  # Drizzle queries (flights, hotels)
-└── auth.ts                       # NextAuth configuration
-```
-
-## Key Workflows
-
-### Book a Trip
-1. Search flights (home page)
-2. Select a flight, choose class
-3. Fill passenger info, review, pay (simulated)
-4. Click "Book a Hotel in {city}" on confirmation
-5. Select hotel, pick room type
-6. Fill guest info, review, pay
-7. View grouped trip in My Trips
-
-### Modify a Trip
-1. Go to My Trips
-2. Click "Modify Trip" on a grouped trip
-3. Pick new departure + return dates
-4. Select a new flight from results
-5. Select a new hotel + room from results
-6. Review old vs new (with price comparison)
-7. Confirm — both update atomically
-
 ## Environment Variables
 
-Create `.env.local`:
+### Web app (`apps/web/.env.local`)
 
 ```
 AUTH_SECRET=your-secret-here
 AUTH_TRUST_HOST=true
+NEXT_PUBLIC_API_URL=http://localhost:3001
 ```
+
+### API server
+
+Uses `AUTH_SECRET` from environment (defaults to dev secret). Set `API_PORT` to change from default 3001.
 
 ## Deployment
 
-SQLite requires a persistent filesystem. Compatible with:
-- Docker
-- Fly.io
-- Railway
-- Any VM/VPS
+The API server and web app can be deployed independently:
 
-Not compatible with serverless platforms (Vercel, Netlify) without switching to a hosted DB like Turso.
+- **API server** — any Node.js host with persistent filesystem (for SQLite)
+- **Web app** — any Node.js host, or Vercel/Netlify (no SQLite dependency)
+
+Set `NEXT_PUBLIC_API_URL` on the web app to point to the deployed API server.
 
 ## License
 
